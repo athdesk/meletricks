@@ -40,7 +40,7 @@ typedef struct {
 /* Canary written at stack_base[0..3] on first tick; checked before each
  * task entry. In case one stack gets overflowed we pause every task to
  * allow reading the panic report using firmware BLE functionality */
-#define SDK_STACK_CANARY 'stak'
+#define SDK_STACK_CANARY 0x7374616bu  /* 'stak' */
 
 
 /* -- Tag macros ---------------------------------------------------- */
