@@ -1,13 +1,29 @@
+"""TweakLoader — push an ARM Thumb ELF onto an fr8000-based BLE keyboard.
+
+Two front-ends share the same BLE / ELF / patching core:
+
+  GUI (default — no subcommand):
+      python3 TweakLoader/tweakloader.py
+      python3 TweakLoader/tweakloader.py path/to/meletricks.elf   # pre-fill ELF
+
+  CLI (development / scripted from `make upload`):
+      python3 TweakLoader/tweakloader.py scan [--name SUBSTR]
+      python3 TweakLoader/tweakloader.py upload ELF --device AA:BB:CC:...
+      python3 TweakLoader/tweakloader.py upload ELF --name SUBSTR
+
+The Makefile wraps the upload form as
+`make upload [DEVICE_FILTER="..."] [DEVICE=AA:BB:...]`.
+"""
+
 from __future__ import annotations
 
+import argparse
 import asyncio
 import os
 import queue
 import struct
 import sys
 import threading
-import tkinter as tk
-from tkinter import filedialog
 from typing import Callable
 
 import capstone
@@ -16,11 +32,22 @@ from bleak import BleakClient, BleakScanner
 from elftools.elf.elffile import ELFFile
 from keystone import KS_ARCH_ARM, KS_MODE_THUMB, Ks
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 try:
     import reloc as _reloc
 except ImportError:
     _reloc = None
 
+
+
+try:
+    import tkinter as tk
+    from tkinter import filedialog
+    _HAS_TK = True
+except ImportError:
+    tk = None
+    filedialog = None
+    _HAS_TK = False
 
 CHAR_W = "02f00000-0000-0000-0000-00000000ff01"
 CHAR_R = "02f00000-0000-0000-0000-00000000ff00"
@@ -28,10 +55,8 @@ WRITE_CHUNK_SIZE = 560
 WRITE_CHUNK_THRESHOLD = 590
 READ_MIN = 16
 
-
 def _build_read_cmd(addr: int, length: int) -> bytes:
     return b"\x08\x00\x06" + struct.pack("I", addr) + struct.pack("H", length)
-
 
 def _build_write_cmd(addr: int, data: bytes) -> bytes:
     assert len(data) < WRITE_CHUNK_THRESHOLD
@@ -44,7 +69,6 @@ def _build_write_cmd(addr: int, data: bytes) -> bytes:
         + data
     )
 
-
 async def _ble_write(client: BleakClient, addr: int, data: bytes) -> None:
     if len(data) < WRITE_CHUNK_THRESHOLD:
         await client.write_gatt_char(CHAR_W, _build_write_cmd(addr, data))
@@ -53,23 +77,18 @@ async def _ble_write(client: BleakClient, addr: int, data: bytes) -> None:
             chunk = data[i : i + WRITE_CHUNK_SIZE]
             await client.write_gatt_char(CHAR_W, _build_write_cmd(addr + i, chunk))
 
-
 async def _ble_read(client: BleakClient, addr: int, length: int) -> bytes:
     over = max(length, READ_MIN)
     await client.write_gatt_char(CHAR_W, _build_read_cmd(addr, over))
     return bytes(await client.read_gatt_char(CHAR_R))[:length]
 
-
 _TRAMPOLINE_ADDR = 0x11008A60
 _TRAMPOLINE_MAX = 0x11009000 - _TRAMPOLINE_ADDR
-
 
 _SENTINEL_ADDR = 0x11009000 - 4
 _SENTINEL_VALUE = 0xB5B5B5B5
 
-
 _TICK_PATCH_ADDR = 0x110014EC
-
 
 _FIXED_LOAD_BASE = 0x220E0000
 
@@ -85,19 +104,15 @@ _IGNORED_SECTIONS = {
 }
 _SHF_ALLOC = 0x2
 
-
 _ks = Ks(KS_ARCH_ARM, KS_MODE_THUMB)
-
 
 def _asm(src: str, addr: int = 0) -> bytes:
     encoding, _ = _ks.asm(src, addr=addr)
     return bytes(encoding)
 
-
 def _valid_code_addr(addr: int) -> bool:
     addr &= ~1
     return any(lo <= addr < hi for lo, hi in _CODE_REGIONS)
-
 
 class _ElfSection:
     __slots__ = ("name", "addr", "size", "data")
@@ -107,7 +122,6 @@ class _ElfSection:
         self.addr = addr
         self.size = size
         self.data = data
-
 
 class _ElfSections:
     def __init__(self, path: str, load_base: int | None = None) -> None:
@@ -166,7 +180,6 @@ class _ElfSections:
         hi = max(s.addr + s.size for s in self.sections)
         return lo, hi
 
-
 def _read_symtab(elf):
     by_idx: dict[int, int] = {}
     by_name: dict[str, int] = {}
@@ -192,7 +205,6 @@ def _read_symtab(elf):
         by_name[name] = val
     return by_idx, by_name, by_shndx, fn_sizes
 
-
 def _collect_relocs(elf, target_idx: int):
     sec = elf.get_section(target_idx)
     base = sec["sh_addr"] if elf.header.e_type in ("ET_EXEC", "ET_DYN") else 0
@@ -203,7 +215,6 @@ def _collect_relocs(elf, target_idx: int):
             info = rel["r_info"]
             yield rel["r_offset"] - base, info & 0xFF, info >> 8
 
-
 def _elf_has_relocs(path: str) -> bool:
     try:
         with open(path, "rb") as f:
@@ -213,7 +224,6 @@ def _elf_has_relocs(path: str) -> bool:
     except Exception:
         pass
     return False
-
 
 def _pic_ok(insn) -> bool:
     mn = insn.mnemonic.lower()
@@ -241,7 +251,6 @@ def _pic_ok(insn) -> bool:
             return False
     return True
 
-
 def _steal_instructions(code: bytes, base: int, min_size: int) -> tuple[bytes, int]:
     cs = capstone.Cs(capstone.CS_ARCH_ARM, capstone.CS_MODE_THUMB)
     cs.detail = False
@@ -252,7 +261,6 @@ def _steal_instructions(code: bytes, base: int, min_size: int) -> tuple[bytes, i
             return code[:total], total
     raise ValueError(f"Cannot decode {min_size}+ bytes at {base:#x}")
 
-
 def _validate_pic(code: bytes, base: int) -> list[tuple[int, str]]:
     cs = capstone.Cs(capstone.CS_ARCH_ARM, capstone.CS_MODE_THUMB)
     cs.detail = True
@@ -261,7 +269,6 @@ def _validate_pic(code: bytes, base: int) -> list[tuple[int, str]]:
         for i in cs.disasm(code, base)
         if not _pic_ok(i)
     ]
-
 
 def _make_patch(patch_addr: int, target_addr: int) -> bytes:
     off = target_addr - (patch_addr + 4)
@@ -272,7 +279,6 @@ def _make_patch(patch_addr: int, target_addr: int) -> bytes:
         f"movw ip, #{t & 0xFFFF:#x}\nmovt ip, #{(t >> 16) & 0xFFFF:#x}\nbx ip\n",
         addr=patch_addr,
     )
-
 
 def _build_trampoline(
     tramp_addr: int,
@@ -297,7 +303,6 @@ def _build_trampoline(
         addr=tail_addr,
     )
     return head + stolen + tail
-
 
 def _build_zero_shellcode(
     stolen: bytes,
@@ -372,7 +377,6 @@ def _build_zero_shellcode(
         )
     return result
 
-
 def _recover_stolen(tramp_bytes: bytes, tramp_addr: int) -> bytes | None:
     """Find the stolen instructions between our stub's pop.w and the MOVW tail.
 
@@ -393,7 +397,6 @@ def _recover_stolen(tramp_bytes: bytes, tramp_addr: int) -> bytes | None:
             return tramp_bytes[stolen_start : insn.address - tramp_addr]
     return None
 
-
 async def _upload_bytes(
     client: BleakClient,
     data: bytes,
@@ -412,7 +415,6 @@ async def _upload_bytes(
                 last_bucket = bucket
                 log(f"    {pct}%...")
 
-
 async def scan_devices() -> list[tuple[str, str, int]]:
     """Return all visible BLE devices as [(name, address, rssi), ...].
 
@@ -428,7 +430,6 @@ async def scan_devices() -> list[tuple[str, str, int]]:
 
     out.sort(key=lambda x: (x[0] == "", -x[2]))
     return [(name or "(no name)", addr, rssi) for name, addr, rssi in out]
-
 
 async def load_elf_to_device(
     device_address: str,
@@ -547,8 +548,131 @@ async def load_elf_to_device(
             pass
 
 
+
+def _log(msg: str) -> None:
+    print(msg, flush=True)
+
+def _filter_devices(
+    devices: list[tuple[str, str, int]], name_filter: str | None
+) -> list[tuple[str, str, int]]:
+    if not name_filter:
+        return devices
+    needle = name_filter.casefold()
+    return [d for d in devices if needle in d[0].casefold()]
+
+def _print_devices(devices: list[tuple[str, str, int]]) -> None:
+    for i, (name, addr, rssi) in enumerate(devices):
+        _log(f"  [{i}] {name:<32}  {addr}  {rssi:>4} dBm")
+
+def _prompt_choice(devices: list[tuple[str, str, int]]) -> str:
+    """Interactive picker — returns the chosen MAC.  Stdin must be a tty."""
+    if not sys.stdin.isatty():
+        raise RuntimeError(
+            "Multiple devices matched and stdin is not a tty.  "
+            "Re-run with --device ADDR or a more specific --name."
+        )
+    while True:
+        raw = input(f"Select device [0..{len(devices) - 1}] (or 'q' to quit): ").strip()
+        if raw.lower() in ("q", "quit", "exit"):
+            raise KeyboardInterrupt
+        if raw.isdigit():
+            idx = int(raw)
+            if 0 <= idx < len(devices):
+                return devices[idx][1]
+        _log("  invalid choice, try again")
+
+async def _pick_device(name_filter: str | None) -> str:
+    _log(f"Scanning for BLE devices{f' matching {name_filter!r}' if name_filter else ''}...")
+    all_devices = await scan_devices()
+    if not all_devices:
+        raise RuntimeError("No BLE devices found.  Make sure Bluetooth is enabled.")
+    matches = _filter_devices(all_devices, name_filter)
+    if not matches:
+        _log("Filter matched nothing.  All visible devices:")
+        _print_devices(all_devices)
+        raise RuntimeError(f"No devices match name filter {name_filter!r}.")
+    if len(matches) == 1:
+        name, addr, rssi = matches[0]
+        _log(f"Found single match: {name} [{addr}] {rssi} dBm")
+        return addr
+    _log(f"Multiple matches ({len(matches)}):")
+    _print_devices(matches)
+    return _prompt_choice(matches)
+
+async def _cmd_scan(args: argparse.Namespace) -> int:
+    devices = await scan_devices()
+    if args.name:
+        devices = _filter_devices(devices, args.name)
+    if not devices:
+        _log("No devices found.")
+        return 1
+    _print_devices(devices)
+    return 0
+
+async def _cmd_upload(args: argparse.Namespace) -> int:
+    if not os.path.isfile(args.elf):
+        _log(f"error: {args.elf}: no such file")
+        return 2
+
+    try:
+        tick_addr = int(args.hook, 16) if isinstance(args.hook, str) else args.hook
+    except ValueError:
+        _log(f"error: invalid --hook value: {args.hook!r}")
+        return 2
+
+    if args.device:
+        addr = args.device
+    else:
+        addr = await _pick_device(args.name)
+
+    _log(f"--- Loading {os.path.basename(args.elf)} | hook @ 0x{tick_addr:08X} ---")
+    ok = await load_elf_to_device(addr, args.elf, _log, tick_addr=tick_addr)
+    return 0 if ok else 1
+
+def _cli_main(argv: list[str]) -> int:
+    p = argparse.ArgumentParser(
+        prog="tweakloader",
+        description="Upload an ARM Thumb ELF to an fr8000-based BLE keyboard.",
+    )
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    scan_p = sub.add_parser("scan", help="List visible BLE devices.")
+    scan_p.add_argument("--name", help="Case-insensitive substring filter.")
+    scan_p.set_defaults(func=_cmd_scan)
+
+    up_p = sub.add_parser("upload", help="Upload an ELF and install the tick hook.")
+    up_p.add_argument("elf", help="path to the ELF file to upload")
+    up_p.add_argument(
+        "--device",
+        help="explicit BLE address (skips scan); overrides --name",
+    )
+    up_p.add_argument(
+        "--name",
+        help="case-insensitive substring filter for the device name.  "
+             "If exactly one device matches, it is used automatically; "
+             "otherwise the user is prompted to pick one.",
+    )
+    up_p.add_argument(
+        "--hook",
+        default=hex(_TICK_PATCH_ADDR),
+        help=f"firmware tick function address (default 0x{_TICK_PATCH_ADDR:08X})",
+    )
+    up_p.set_defaults(func=_cmd_upload)
+
+    args = p.parse_args(argv)
+    try:
+        return asyncio.run(args.func(args))
+    except KeyboardInterrupt:
+        _log("\nAborted.")
+        return 130
+    except Exception as e:
+        _log(f"error: {e}")
+        return 1
+
+
+
 class _App:
-    def __init__(self, root: tk.Tk) -> None:
+    def __init__(self, root) -> None:
         self.root = root
         self.root.title("TweakLoader")
         self.root.minsize(500, 520)
@@ -556,15 +680,12 @@ class _App:
 
         self._elf_var = tk.StringVar()
         self._hook_addr_var = tk.StringVar(value=f"0x{_TICK_PATCH_ADDR:08X}")
-        self._devices: list[tuple[str, str]] = []
+        self._devices: list[tuple[str, str, int]] = []
         self._log_queue: queue.Queue[str] = queue.Queue()
         self._busy = False
 
         self._build_ui()
         self._poll_log()
-
-        if len(sys.argv) > 1 and os.path.isfile(sys.argv[1]):
-            self._elf_var.set(sys.argv[1])
 
     def _build_ui(self) -> None:
         PAD = {"padx": 10, "pady": 5}
@@ -695,7 +816,7 @@ class _App:
 
         threading.Thread(target=_run, daemon=True).start()
 
-    def _on_scan_done(self, devices: list[tuple[str, str]]) -> None:
+    def _on_scan_done(self, devices: list[tuple[str, str, int]]) -> None:
         self._devices = devices
         if devices:
             for name, addr, rssi in devices:
@@ -763,12 +884,31 @@ class _App:
         self._enqueue(msg)
         self._set_busy(False)
 
-
-def main() -> None:
+def _launch_gui(elf_arg: str | None) -> int:
+    if not _HAS_TK:
+        _log("error: tkinter is not available on this Python install.")
+        _log("       use the CLI instead:")
+        _log("         tweakloader.py scan [--name SUBSTR]")
+        _log("         tweakloader.py upload ELF [--device A | --name SUBSTR]")
+        return 1
     root = tk.Tk()
-    _App(root)
+    app = _App(root)
+    if elf_arg and os.path.isfile(elf_arg):
+        app._elf_var.set(elf_arg)
     root.mainloop()
+    return 0
 
+
+
+_CLI_COMMANDS = {"scan", "upload"}
+
+def main() -> int:
+    argv = sys.argv[1:]
+
+    if argv and (argv[0] in _CLI_COMMANDS or argv[0] in ("-h", "--help")):
+        return _cli_main(argv)
+
+    return _launch_gui(argv[0] if argv else None)
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

@@ -85,8 +85,9 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    # No console window — all output goes to the GUI log panel.
-    console=False,
+    # CLI tool — keep the console attached so stdout/stderr and the
+    # interactive device picker work.
+    console=True,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
