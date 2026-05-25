@@ -6,6 +6,18 @@
 
 #include "gfx.h"
 #include "timer.h"
+#include "firmware.h"
+
+// #define TIME_GET() (fr_millis() % 86400000u)
+
+static inline u32 time_get_fw() {
+    lcd_rtc_live_t live;
+    lcd_rtc_get_live(&live);
+    u32 total_s = (live.hour * 3600u) + (live.minute * 60u) + live.second;
+    return total_s * 1000u;
+}
+
+#define TIME_GET() time_get_fw()
 
 static int format_clock(char *buf, u32 millis, int show_seconds)
 {
@@ -32,7 +44,7 @@ int GfxClockTick(GfxClock *c)
 {
     if (!c) return 0;
     u32 div = c->show_seconds ? 1000u : 60000u;
-    u32 unit = fr_millis() / div;
+    u32 unit = TIME_GET() / div;
     if (unit == c->last_unit) return 0;
     c->last_unit = unit;
     return 1;
@@ -102,12 +114,12 @@ void GfxClockDraw(GfxRenderingTile *tile, GfxClock *c)
     if (GfxIsScreenChangeFrame()) c->cache_ready = 0;
 
     char buf[GFX_CLOCK_MAX_SLOTS + 1];
-    int n = format_clock(buf, fr_millis(), c->show_seconds);
+    int n = format_clock(buf, TIME_GET(), c->show_seconds);
 
     /* Centre a glyph's natural advance within its (potentially wider)
      * tabular slot — keeps narrow digits like '1' visually balanced in
      * a slot sized for the widest digit. */
-    #define CLOCK_PEN_X(i, ch) ({                                              \
+    #define CLOCK_PEN_X(i, ch) ({                                               \
         const GfxGlyph *_g = GfxFontLookup(c->Font, (u8)(ch));                  \
         int _adv = _g ? _g->x_advance : c->Font->default_advance;               \
         c->slot_x[(i)] + (c->slot_w[(i)] - _adv) / 2;                           \
