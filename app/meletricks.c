@@ -30,64 +30,13 @@ GfxRenderTarget        s_overlay_bg_target;
 GfxWidget *s_navbar;
 GfxWidget *s_statusbar;
 
-/* -- Accent appliers -------------------------------------------- */
-
-void accent_menu(GfxWidget *w, GfxColor c)
-{ ((GfxMenuList *)w->data)->color_indicator = c; GfxMarkDirty(w); }
-
-static void accent_statusbar(GfxWidget *w, GfxColor c)
-{ ((StatusBar *)w->data)->color = c; GfxMarkDirty(w); }
-static void accent_battery(GfxWidget *w, GfxColor c)
-{ ((BatteryBadge *)w->data)->color = c; GfxMarkDirty(w); }
-
-/* -- Bg appliers ------------------------------------------------ */
-
-void bg_menu(GfxWidget *w, GfxColor c)
-{ ((GfxMenuList *)w->data)->bg_color = c; GfxMarkDirty(w); }
-
-void bg_clock(GfxWidget *w, GfxColor c)
-{
-    GfxClock *cl = w->data;
-    cl->bg_color   = c;
-    cl->cache_ready = 0;   /* force full repaint to overwrite stale pixels */
-    GfxMarkDirty(w);
-}
-
-static void bg_breadcrumb(GfxWidget *w, GfxColor c)
-{ ((GfxBreadcrumb *)w->data)->bg_color = c; GfxMarkDirty(w); }
-static void bg_statusbar(GfxWidget *w, GfxColor c)
-{ ((StatusBar *)w->data)->bg_color = c; GfxMarkDirty(w); }
-static void bg_battery(GfxWidget *w, GfxColor c)
-{ ((BatteryBadge *)w->data)->bg_color = c; GfxMarkDirty(w); }
-static void bg_navbar(GfxWidget *w, GfxColor c)
-{ ((NavBar *)w->data)->bg_color = c; GfxMarkDirty(w); }
-
-/* -- Font appliers ---------------------------------------------- */
-
-static void font_breadcrumb(GfxWidget *w, const GfxFont *f)
-{ ((GfxBreadcrumb *)w->data)->font = f; GfxMarkDirty(w); }
-static void font_battery(GfxWidget *w, const GfxFont *f)
-{ ((BatteryBadge *)w->data)->font = f; GfxMarkDirty(w); }
-static void font_menu(GfxWidget *w, const GfxFont *f)
-{ ((GfxMenuList *)w->data)->font = f; GfxMarkDirty(w); }
-
-/* -- Secondary appliers ---------------------------------------- */
-
-void secondary_clock(GfxWidget *w, GfxColor c)
-{
-    GfxClock *cl = w->data;
-    cl->color       = c;
-    cl->cache_ready = 0;
-    GfxMarkDirty(w);
-}
-
 /* -- Chrome factories ------------------------------------------- */
 
 GfxWidget *make_border(void)
 {
     GfxWidget *w = NewGfxBorder(
         .radius = GFX_CORNER_RADIUS, .thickness = 2,
-        .color = frame_color_value(),
+        .Color = frame_color_value(),
     );
     settings_register_border(w);
     return w;
@@ -96,30 +45,27 @@ GfxWidget *make_border(void)
 static GfxWidget *make_breadcrumb(void)
 {
     GfxWidget *w = NewGfxBreadcrumb(
-        .font = &font_montserrat_14,
-        .color = accent_color(), .bg_color = bg_color_value(),
+        .Font = &font_montserrat_14,
+        .Color = accent_color(), .BgColor = bg_color_value(),
         .fade_width = 24, .separator = " > ",
     );
     settings_register_breadcrumb(w);
-    settings_register_bg(w, bg_breadcrumb);
-    settings_register_header_font(w, font_breadcrumb);
+    settings_register_bg(w, GFX_APPLIER_FN(GfxBreadcrumb, BgColor));
+    settings_register_header_font(w, GFX_APPLIER_FN(GfxBreadcrumb, Font));
     return w;
 }
-
-static void bg_textbox(GfxWidget *w, GfxColor c)
-{ ((GfxTextbox *)w->data)->bg_color = c; GfxMarkDirty(w); }
 
 GfxWidget *make_placeholder(const char *text)
 {
     GfxWidget *w = NewGfxTextbox(
-        .font   = &font_lora_24,
-        .color  = GFX_GREY,
-        .bg_color = bg_color_value(),
+        .Font   = &font_lora_24,
+        .Color  = GFX_GREY,
+        .BgColor = bg_color_value(),
         .text   = text,
         .halign = GFX_ALIGN_CENTER,
         .valign = GFX_VALIGN_MIDDLE,
     );
-    settings_register_bg(w, bg_textbox);
+    settings_register_bg(w, GFX_APPLIER_FN(GfxTextbox, BgColor));
     return w;
 }
 
@@ -133,18 +79,18 @@ GfxWidget *make_menu(const GfxMenuItem *items, int n, GfxMenuIndicatorAlign alig
      * body shift that gives demos visual breathing space would just
      * eat rows the menu wants for items. */
     GfxWidget *w = NewGfxMenuList(
-        .font = &font_montserrat_14,
-        .color_normal             = GFX_GREY,
-        .color_selected           = GFX_WHITE,
-        .color_indicator          = accent_color(),
-        .color_indicator_inactive = GFX_GREY,
-        .bg_color                 = bg_color_value(),
+        .Font = &font_montserrat_14,
+        .ColorNormal             = GFX_GREY,
+        .ColorSelected           = GFX_WHITE,
+        .ColorIndicator          = accent_color(),
+        .ColorIndicatorInactive = GFX_GREY,
+        .BgColor                 = bg_color_value(),
         .items = items, .item_count = n,
         .item_spacing  = 4,
         .indicator_pad = 28,
         .indicator_align = align,
     );
-    settings_register_list_font(w, font_menu);
+    settings_register_list_font(w, GFX_APPLIER_FN(GfxMenuList, Font));
     return w;
 }
 
@@ -303,15 +249,15 @@ static void build_overlay_bg(void)
     GfxFbClear(&s_overlay_bg, bg_color_value());
 
     s_overlay_bg_widget = NewGfxClock(
-        .font = &font_montserrat_64,
-        .color = secondary_color(),
-        .bg_color = bg_color_value(),
+        .Font = &font_montserrat_64,
+        .Color = secondary_color(),
+        .BgColor = bg_color_value(),
         .show_seconds = clock_seconds_get(),
         .halign = GFX_ALIGN_CENTER,
         .valign = GFX_VALIGN_MIDDLE,
     );
-    settings_register_bg(s_overlay_bg_widget, bg_clock);
-    settings_register_secondary(s_overlay_bg_widget, secondary_clock);
+    settings_register_bg(s_overlay_bg_widget, GFX_APPLIER_FN(GfxClock, BgColor));
+    settings_register_secondary(s_overlay_bg_widget, GFX_APPLIER_FN(GfxClock, Color));
     settings_register_clock(s_overlay_bg_widget);
 
     /* The target itself isn't registered globally — consumer widgets
@@ -348,28 +294,28 @@ static void fps_present_hook(GfxFb *fb)
 static void build_overlays(void)
 {
     GfxWidget *s_battery_badge = NewBatteryBadge(
-        .font = &font_montserrat_14,
-        .color = accent_color(), .bg_color = bg_color_value(),
+        .Font = &font_montserrat_14,
+        .Color = accent_color(), .BgColor = bg_color_value(),
     );
-    settings_register_accent(s_battery_badge, accent_battery);
-    settings_register_bg(s_battery_badge, bg_battery);
-    settings_register_header_font(s_battery_badge, font_battery);
+    settings_register_accent(s_battery_badge, GFX_APPLIER_FN(BatteryBadge, Color));
+    settings_register_bg(s_battery_badge, GFX_APPLIER_FN(BatteryBadge, BgColor));
+    settings_register_header_font(s_battery_badge, GFX_APPLIER_FN(BatteryBadge, Font));
     BatteryBadgeBindCallback(s_battery_badge);
 
     s_statusbar = NewStatusBar(
-        .font = &font_fira_mono_14,
-        .color = accent_color(),
-        .color_dim = GFX_GREY,
-        .bg_color = bg_color_value(),
+        .Font = &font_fira_mono_14,
+        .Color = accent_color(),
+        .ColorDim = GFX_GREY,
+        .BgColor = bg_color_value(),
     );
     StatusBarBindCallbacks(s_statusbar);
-    settings_register_accent(s_statusbar, accent_statusbar);
-    settings_register_bg(s_statusbar, bg_statusbar);
+    settings_register_accent(s_statusbar, GFX_APPLIER_FN(StatusBar, Color));
+    settings_register_bg(s_statusbar, GFX_APPLIER_FN(StatusBar, BgColor));
 
     GfxWidget *s_breadcrumb = make_breadcrumb();
     s_navbar = NewNavBar(
-        .bg_color = bg_color_value(),
-        .separator_color = GFX_GREY,
+        .BgColor = bg_color_value(),
+        .SeparatorColor = GFX_GREY,
     );
     NavBarAddChild(s_navbar, s_breadcrumb,
                    (GfxBoundingBox){ HEADER_BC_X, 6, HEADER_BC_W,
@@ -377,7 +323,7 @@ static void build_overlays(void)
     NavBarAddChild(s_navbar, s_battery_badge,
                    (GfxBoundingBox){ HEADER_BATT_X, 6, HEADER_BATT_W,
                                      font_fira_mono_14.line_height });
-    settings_register_bg(s_navbar, bg_navbar);
+    settings_register_bg(s_navbar, GFX_APPLIER_FN(NavBar, BgColor));
 }
 
 /* -- Setup ------------------------------------------------------ */

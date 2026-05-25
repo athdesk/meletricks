@@ -18,8 +18,8 @@
 #define NAVBAR_MAX_CHILDREN 4
 
 typedef struct {
-    GfxColor      bg_color;
-    GfxColor      separator_color;
+    GfxColor      BgColor;
+    GfxColor      SeparatorColor;
     bool          skip_clear;
     u8            child_count;
     GfxWidgetSlot slots[NAVBAR_MAX_CHILDREN];
@@ -36,5 +36,7 @@ void NavBarAddChild(GfxWidget *navbar_w, GfxWidget *child, GfxBoundingBox box);
 #define NewNavBar(...) \
     GfxNewWidget(sizeof(NavBar), &(NavBar){ __VA_ARGS__ }, \
                  GFX_DRAW_FN(NavBarDraw), GFX_TICK_FN(NavBarTick))
+
+GFX_DEFINE_APPLIER(NavBar, BgColor)
 
 #endif

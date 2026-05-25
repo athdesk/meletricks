@@ -95,22 +95,22 @@ static void wpm_autoscale_set_wrapped(int v)
 }
 
 static void accent_graph(GfxWidget *w, GfxColor c)
-{ ((GfxGraph *)w->data)->color = c;        GfxMarkDirty(w); }
+{ ((GfxGraph *)w->data)->Color = c;        GfxMarkDirty(w); }
 
 static void bg_graph(GfxWidget *w, GfxColor c)
-{ ((GfxGraph *)w->data)->bg_color = c;     GfxMarkDirty(w); }
+{ ((GfxGraph *)w->data)->BgColor = c;     GfxMarkDirty(w); }
 
 static void secondary_graph(GfxWidget *w, GfxColor c)
-{ ((GfxGraph *)w->data)->legend_color = c; GfxMarkDirty(w); }
+{ ((GfxGraph *)w->data)->LegendColor = c; GfxMarkDirty(w); }
 
 void build_graph(void)
 {
     GfxWidget *body = NewGfxGraph(
-        .color = accent_color(), .bg_color = bg_color_value(),
+        .Color = accent_color(), .BgColor = bg_color_value(),
         .line_width   = 2,
         .autoscale    = 1,
         .show_legend  = 1,
-        .legend_color = secondary_color(),
+        .LegendColor = secondary_color(),
         .legend_font  = &font_fira_mono_14,
         .data_min     = 0,
         .data_max     = WPM_DEFAULT_SCALE,
@@ -141,8 +141,8 @@ void build_graph(void)
      * Max row is hidden at boot when autoscale is already on. */
     GfxMenuListSetHidden(s_graph_settings_menu, GRAPH_SETTINGS_MAX_IDX,
                          wpm_autoscale_get());
-    settings_register_accent(s_graph_settings_menu, accent_menu);
-    settings_register_bg(s_graph_settings_menu, bg_menu);
+    settings_register_accent(s_graph_settings_menu, GFX_APPLIER_FN(GfxMenuList, ColorIndicator));
+    settings_register_bg(s_graph_settings_menu, GFX_APPLIER_FN(GfxMenuList, BgColor));
     s_graph_settings_slots[0] = (GfxWidgetSlot){ s_graph_settings_menu, MENU_SLOT };
     s_graph_settings_slots[1] = (GfxWidgetSlot){ s_navbar,              NAVBAR_SLOT };
     s_graph_settings_slots[2] = (GfxWidgetSlot){ make_border(),         BORDER_SLOT };

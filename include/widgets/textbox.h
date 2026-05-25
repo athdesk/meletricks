@@ -1,6 +1,6 @@
 #ifndef GFX_WIDGETS_TEXTBOX_H
 #define GFX_WIDGETS_TEXTBOX_H
-#include "gfx.h"
+#include "gfx_widgets.h"
 
 /* -- Textbox ---- multi-line text with align + word-wrap.
  *
@@ -8,9 +8,9 @@
  * bg_color before drawing the text. Set `skip_clear` to stack the
  * textbox on top of another widget (e.g. a label over an image). */
 typedef struct {
-    const GfxFont *font;
-    GfxColor       color;
-    GfxColor       bg_color;
+    const GfxFont *Font;
+    GfxColor       Color;
+    GfxColor       BgColor;
     bool           skip_clear;
     const char    *text;
     GfxHalign      halign;
@@ -24,5 +24,7 @@ void GfxTextboxDraw(GfxRenderingTile *tile, GfxTextbox *t);
                  &(GfxTextbox){ __VA_ARGS__ }, \
                  GFX_DRAW_FN(GfxTextboxDraw), \
                  NULL)
+
+GFX_DEFINE_APPLIER(GfxTextbox, BgColor)
 
 #endif

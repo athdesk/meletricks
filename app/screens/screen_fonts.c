@@ -92,8 +92,8 @@ static const GfxMenuItem FONTS_ITEMS[] = {
 void build_fonts_screen(void)
 {
     s_fonts_menu = make_menu(FONTS_ITEMS, FONTS_COUNT, GFX_MENU_INDICATOR_LEFT);
-    settings_register_accent(s_fonts_menu, accent_menu);
-    settings_register_bg(s_fonts_menu, bg_menu);
+    settings_register_accent(s_fonts_menu, GFX_APPLIER_FN(GfxMenuList, ColorIndicator));
+    settings_register_bg(s_fonts_menu, GFX_APPLIER_FN(GfxMenuList, BgColor));
     s_fonts_slots[0] = (GfxWidgetSlot){ s_fonts_menu, MENU_SLOT };
     s_fonts_slots[1] = (GfxWidgetSlot){ s_navbar,     NAVBAR_SLOT };
     s_fonts_slots[2] = (GfxWidgetSlot){ make_border(), BORDER_SLOT };

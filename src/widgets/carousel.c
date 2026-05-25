@@ -2,7 +2,7 @@
 
 static int avail_h(const GfxCarousel *c)
 {
-    int label_h = c->font ? (int)c->font->line_height : 0;
+    int label_h = c->Font ? (int)c->Font->line_height : 0;
     int h = c->h - label_h - 6;   /* 2px bottom pad + 4px icon-label gap */
     return h > 0 ? h : 0;
 }
@@ -85,9 +85,9 @@ void GfxCarouselDraw(GfxRenderingTile *tile, GfxCarousel *c)
     GfxClip saved = GfxFbPushClip(tile->fb, tile->box);
 
     if (!c->skip_clear)
-        GfxFillRect(tile->fb, tile->box.x, tile->box.y, c->w, c->h, c->bg_color);
+        GfxFillRect(tile->fb, tile->box.x, tile->box.y, c->w, c->h, c->BgColor);
 
-    int label_h  = c->font ? (int)c->font->line_height : 0;
+    int label_h  = c->Font ? (int)c->Font->line_height : 0;
     int ly       = tile->box.y + c->h - label_h - 2;
     int ah       = avail_h(c);
     int icon_y   = tile->box.y;
@@ -99,7 +99,7 @@ void GfxCarouselDraw(GfxRenderingTile *tile, GfxCarousel *c)
                          : GfxIconWidth(&c->items[c->selected].icon, ah);
     int in_x = tile->box.x + (c->w - in_w) / 2 + c->_anim_offset;
     GfxIconDraw(tile->fb, &c->items[c->selected].icon,
-                in_x, icon_y, ah, c->color, c->bg_color);
+                in_x, icon_y, ah, c->Color, c->BgColor);
 
     /* Outgoing icon — only drawn while animating; widths already cached. */
     if (animating) {
@@ -110,15 +110,15 @@ void GfxCarouselDraw(GfxRenderingTile *tile, GfxCarousel *c)
         int out_x = tile->box.x + (c->w - c->_cached_out_w) / 2
                     + c->_anim_offset - dir * c->_cached_slide;
         GfxIconDraw(tile->fb, &c->items[out_idx].icon,
-                    out_x, icon_y, ah, c->color, c->bg_color);
+                    out_x, icon_y, ah, c->Color, c->BgColor);
     }
 
     /* Label centred below the icon area. */
-    if (c->font && c->items[c->selected].label) {
+    if (c->Font && c->items[c->selected].label) {
         const char *label = c->items[c->selected].label;
-        int lw = GfxTextWidth(c->font, label);
+        int lw = GfxTextWidth(c->Font, label);
         int lx = tile->box.x + (c->w - lw) / 2;
-        GfxDrawTextBg(tile->fb, c->font, lx, ly, label, c->color, c->bg_color);
+        GfxDrawTextBg(tile->fb, c->Font, lx, ly, label, c->Color, c->BgColor);
     }
 
     GfxFbPopClip(tile->fb, saved);

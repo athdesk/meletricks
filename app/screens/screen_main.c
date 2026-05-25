@@ -36,18 +36,18 @@ static void on_carousel_select(GfxCarouselItem *item)
 }
 
 static void bg_carousel(GfxWidget *w, GfxColor c)
-{ ((GfxCarousel *)w->data)->bg_color = c; GfxMarkDirty(w); }
+{ ((GfxCarousel *)w->data)->BgColor = c; GfxMarkDirty(w); }
 
 static void font_carousel(GfxWidget *w, const GfxFont *f)
-{ ((GfxCarousel *)w->data)->font = f; GfxMarkDirty(w); }
+{ ((GfxCarousel *)w->data)->Font = f; GfxMarkDirty(w); }
 
 void build_main(void)
 {
     s_main_carousel = NewGfxCarousel(
         .w = LCD_W, .h = BODY_H,
-        .font      = &font_lora_24,
-        .color     = GFX_WHITE,
-        .bg_color  = bg_color_value(),
+        .Font      = &font_lora_24,
+        .Color     = GFX_WHITE,
+        .BgColor  = bg_color_value(),
         .items     = CAROUSEL_ITEMS,
         .item_count = CAROUSEL_COUNT,
         .on_select = on_carousel_select,

@@ -13,10 +13,10 @@ typedef enum {
 } StatusBarConn;
 
 typedef struct {
-    const GfxFont *font;
-    GfxColor       color;          /* active icons + text */
-    GfxColor       color_dim;      /* inactive icons (caps off, etc.) */
-    GfxColor       bg_color;
+    const GfxFont *Font;
+    GfxColor       Color;          /* active icons + text */
+    GfxColor       ColorDim;      /* inactive icons (caps off, etc.) */
+    GfxColor       BgColor;
     bool           skip_clear;
     /* state — keyboard status via StatusBarBindCallbacks push callback */
     bool           caps_on;
@@ -40,5 +40,8 @@ void StatusBarBindCallbacks(GfxWidget *w);
 #define NewStatusBar(...) \
     GfxNewWidget(sizeof(StatusBar), &(StatusBar){ __VA_ARGS__ }, \
                  GFX_DRAW_FN(StatusBarDraw), GFX_TICK_FN(StatusBarTick))
+
+GFX_DEFINE_APPLIER(StatusBar, Color)
+GFX_DEFINE_APPLIER(StatusBar, BgColor)
 
 #endif

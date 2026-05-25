@@ -1,7 +1,6 @@
 #ifndef GFX_WIDGETS_CAROUSEL_H
 #define GFX_WIDGETS_CAROUSEL_H
-#include "gfx.h"
-#include "gfx_icon.h"
+#include "gfx_widgets.h"
 
 typedef struct {
     const char *label;
@@ -9,9 +8,9 @@ typedef struct {
 } GfxCarouselItem;
 
 typedef struct {
-    int                    w, h;          /* physics dimensions       */
-    GfxColor               color, bg_color;
-    const GfxFont         *font;          /* label font               */
+    int                    w, h;
+    GfxColor               Color, BgColor;
+    const GfxFont         *Font;
     const GfxCarouselItem *items;
     int                    item_count;
     int                    selected;

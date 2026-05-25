@@ -1,6 +1,6 @@
 #ifndef GFX_WIDGETS_PROGRESS_H
 #define GFX_WIDGETS_PROGRESS_H
-#include "gfx.h"
+#include "gfx_widgets.h"
 
 typedef enum {
     GFX_PROGRESS_BAR     = 0,
@@ -9,9 +9,9 @@ typedef enum {
 } GfxProgressStyle;
 
 typedef struct {
-    GfxColor         color;
-    GfxColor         bg_color;
-    GfxColor         border_color;
+    GfxColor         Color;
+    GfxColor         BgColor;
+    GfxColor         BorderColor;
     bool             show_border;
     int              value;
     int              max;

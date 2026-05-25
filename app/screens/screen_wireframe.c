@@ -88,8 +88,8 @@ void build_wireframe(void)
     s_wireframe_settings_menu = make_menu(WIREFRAME_SETTINGS_ITEMS,
                                           WIREFRAME_SETTINGS_COUNT,
                                           GFX_MENU_INDICATOR_NONE);
-    settings_register_accent(s_wireframe_settings_menu, accent_menu);
-    settings_register_bg(s_wireframe_settings_menu, bg_menu);
+    settings_register_accent(s_wireframe_settings_menu, GFX_APPLIER_FN(GfxMenuList, ColorIndicator));
+    settings_register_bg(s_wireframe_settings_menu, GFX_APPLIER_FN(GfxMenuList, BgColor));
     s_wireframe_settings_slots[0] = (GfxWidgetSlot){ s_wireframe_settings_menu, MENU_SLOT };
     s_wireframe_settings_slots[1] = (GfxWidgetSlot){ s_navbar,                  NAVBAR_SLOT };
     s_wireframe_settings_slots[2] = (GfxWidgetSlot){ make_border(),             BORDER_SLOT };

@@ -1,18 +1,18 @@
 #ifndef GFX_WIDGETS_GRAPH_H
 #define GFX_WIDGETS_GRAPH_H
-#include "gfx.h"
+#include "gfx_widgets.h"
 
 /* -- Graph ---- line graph with optional autoscaling. */
 typedef struct {
-    GfxColor       color;
-    GfxColor       bg_color;
+    GfxColor       Color;
+    GfxColor       BgColor;
     bool           skip_clear;
     int            line_width;
     bool           autoscale;
     /* Legend: h-lines at top / mid / bottom of the data range, labelled
      * with their values. legend_font may be NULL for lines without text. */
     bool           show_legend;
-    GfxColor       legend_color;
+    GfxColor       LegendColor;
     const GfxFont *legend_font;   /* NULL = lines only */
     int            data_min;
     int            data_max;

@@ -22,12 +22,12 @@ static void draw_bar(GfxFb *fb, const GfxProgress *p, GfxBoundingBox box, int v,
     if (p->show_border) {
         GfxDrawRect(fb, box.x, box.y, &(GfxRect){
             .w = box.w, .h = box.h,
-            .radius = p->corner_radius, .color = p->border_color,
+            .radius = p->corner_radius, .color = p->BorderColor,
         });
         inner_x++; inner_y++; inner_w -= 2; inner_h -= 2;
     }
     linear_fill(fb, inner_x, inner_y, inner_w, inner_h, v, max,
-                p->color, p->bg_color);
+                p->Color, p->BgColor);
 }
 
 static void draw_battery(GfxFb *fb, const GfxProgress *p, GfxBoundingBox box, int v, int max)
@@ -39,13 +39,13 @@ static void draw_battery(GfxFb *fb, const GfxProgress *p, GfxBoundingBox box, in
     if (p->show_border) {
         GfxDrawRect(fb, box.x, box.y, &(GfxRect){
             .w = body_w, .h = box.h,
-            .radius = p->corner_radius, .color = p->border_color,
+            .radius = p->corner_radius, .color = p->BorderColor,
         });
         if (nub_w > 0) {
             int nub_h = box.h / 2;
             if (nub_h < 4) nub_h = 4;
             int nub_y = box.y + (box.h - nub_h) / 2;
-            GfxFillRect(fb, box.x + body_w, nub_y, nub_w, nub_h, p->border_color);
+            GfxFillRect(fb, box.x + body_w, nub_y, nub_w, nub_h, p->BorderColor);
         }
     }
 
@@ -54,7 +54,7 @@ static void draw_battery(GfxFb *fb, const GfxProgress *p, GfxBoundingBox box, in
     linear_fill(fb,
                 box.x + inset, box.y + inset,
                 body_w - 2 * inset, box.h - 2 * inset,
-                v, max, p->color, p->bg_color);
+                v, max, p->Color, p->BgColor);
 }
 
 static void draw_gauge(GfxFb *fb, const GfxProgress *p, GfxBoundingBox box, int v, int max)
@@ -76,11 +76,11 @@ static void draw_gauge(GfxFb *fb, const GfxProgress *p, GfxBoundingBox box, int 
 
     int filled_end = start + (int)(((long)v * sweep) / max);
 
-    if (p->bg_color) {
-        GfxArc(fb, cx, cy, r, start, end, thickness, p->bg_color);
+    if (p->BgColor) {
+        GfxArc(fb, cx, cy, r, start, end, thickness, p->BgColor);
     }
     if (filled_end > start) {
-        GfxArc(fb, cx, cy, r, start, filled_end, thickness, p->color);
+        GfxArc(fb, cx, cy, r, start, filled_end, thickness, p->Color);
     }
 }
 

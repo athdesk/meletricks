@@ -9,7 +9,7 @@ void GfxBorderDraw(GfxRenderingTile *tile, GfxBorder *b)
         if (r < 0) r = 0;
         GfxDrawRect(tile->fb, tile->box.x + i, tile->box.y + i, &(GfxRect){
             .w = tile->box.w - 2 * i, .h = tile->box.h - 2 * i,
-            .radius = r, .color = b->color,
+            .radius = r, .color = b->Color,
         });
     }
 }

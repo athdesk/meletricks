@@ -27,12 +27,6 @@ GfxWidget *make_border(void);
 GfxWidget *make_menu(const GfxMenuItem *items, int n, GfxMenuIndicatorAlign align);
 GfxWidget *make_placeholder(const char *text);
 
-/* Shared appliers — defined in meletricks.c */
-void accent_menu(GfxWidget *w, GfxColor c);
-void bg_menu    (GfxWidget *w, GfxColor c);
-void bg_clock   (GfxWidget *w, GfxColor c);   /* used by overlay_bg + screen_clock */
-void secondary_clock(GfxWidget *w, GfxColor c); /* same */
-
 /* Called from screen_settings to trigger sleep or toggle FPS overlay */
 void meletricks_sleep_now(void);
 int  fps_show_get(void);

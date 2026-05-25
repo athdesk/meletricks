@@ -47,8 +47,8 @@ static void clock_layout(GfxClock *c, GfxBoundingBox box, const char *text, int 
 {
     int digit_adv = 0;
     for (char d = '0'; d <= '9'; d++) {
-        const GfxGlyph *g = GfxFontLookup(c->font, (u8)d);
-        int a = g ? g->x_advance : c->font->default_advance;
+        const GfxGlyph *g = GfxFontLookup(c->Font, (u8)d);
+        int a = g ? g->x_advance : c->Font->default_advance;
         if (a > digit_adv) digit_adv = a;
     }
 
@@ -60,14 +60,14 @@ static void clock_layout(GfxClock *c, GfxBoundingBox box, const char *text, int 
         if (ch >= '0' && ch <= '9') {
             adv = digit_adv;
         } else {
-            const GfxGlyph *g = GfxFontLookup(c->font, (u8)ch);
-            adv = g ? g->x_advance : c->font->default_advance;
+            const GfxGlyph *g = GfxFontLookup(c->Font, (u8)ch);
+            adv = g ? g->x_advance : c->Font->default_advance;
         }
         advs[i] = (s16)adv;
         total_w += adv;
     }
 
-    int line_h = c->font->line_height;
+    int line_h = c->Font->line_height;
     int x0;
     switch (c->halign) {
     case GFX_ALIGN_CENTER: x0 = box.x + (box.w - total_w) / 2; break;
@@ -95,8 +95,8 @@ static void clock_layout(GfxClock *c, GfxBoundingBox box, const char *text, int 
 
 void GfxClockDraw(GfxRenderingTile *tile, GfxClock *c)
 {
-    if (!c || !c->font) return;
-    int line_h = c->font->line_height;
+    if (!c || !c->Font) return;
+    int line_h = c->Font->line_height;
 
     // We drop cache here since otherwise we'd only redraw the digit that changed
     if (GfxIsScreenChangeFrame()) c->cache_ready = 0;
@@ -108,17 +108,17 @@ void GfxClockDraw(GfxRenderingTile *tile, GfxClock *c)
      * tabular slot — keeps narrow digits like '1' visually balanced in
      * a slot sized for the widest digit. */
     #define CLOCK_PEN_X(i, ch) ({                                              \
-        const GfxGlyph *_g = GfxFontLookup(c->font, (u8)(ch));                  \
-        int _adv = _g ? _g->x_advance : c->font->default_advance;               \
+        const GfxGlyph *_g = GfxFontLookup(c->Font, (u8)(ch));                  \
+        int _adv = _g ? _g->x_advance : c->Font->default_advance;               \
         c->slot_x[(i)] + (c->slot_w[(i)] - _adv) / 2;                           \
     })
 
     if (!c->cache_ready || c->slot_count != n) {
-        if (!c->skip_clear) GfxFillTile(tile, c->bg_color);
+        if (!c->skip_clear) GfxFillTile(tile, c->BgColor);
         clock_layout(c, tile->box, buf, n);
         for (int i = 0; i < n; i++) {
-            GfxDrawCharBg(tile->fb, c->font, CLOCK_PEN_X(i, buf[i]), c->text_y,
-                          (u8)buf[i], c->color, c->bg_color);
+            GfxDrawCharBg(tile->fb, c->Font, CLOCK_PEN_X(i, buf[i]), c->text_y,
+                          (u8)buf[i], c->Color, c->BgColor);
             c->prev_text[i] = buf[i];
         }
         c->prev_text[n] = 0;
@@ -128,9 +128,9 @@ void GfxClockDraw(GfxRenderingTile *tile, GfxClock *c)
 
     for (int i = 0; i < n; i++) {
         if (buf[i] == c->prev_text[i]) continue;
-        GfxFillRect(tile->fb, c->slot_x[i], c->text_y, c->slot_w[i], line_h, c->bg_color);
-        GfxDrawCharBg(tile->fb, c->font, CLOCK_PEN_X(i, buf[i]), c->text_y,
-                      (u8)buf[i], c->color, c->bg_color);
+        GfxFillRect(tile->fb, c->slot_x[i], c->text_y, c->slot_w[i], line_h, c->BgColor);
+        GfxDrawCharBg(tile->fb, c->Font, CLOCK_PEN_X(i, buf[i]), c->text_y,
+                      (u8)buf[i], c->Color, c->BgColor);
         c->prev_text[i] = buf[i];
     }
 

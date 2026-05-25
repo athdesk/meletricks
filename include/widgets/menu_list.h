@@ -1,6 +1,6 @@
 #ifndef GFX_WIDGETS_MENU_LIST_H
 #define GFX_WIDGETS_MENU_LIST_H
-#include "gfx.h"
+#include "gfx_widgets.h"
 
 /* Menu list: vertical scrolling list.
  * Drive it with the four command handlers (Up/Down/Enter/Back);
@@ -54,12 +54,12 @@ typedef enum {
 } GfxMenuIndicatorAlign;
 
 typedef struct {
-    const GfxFont            *font;
-    GfxColor                  color_normal;
-    GfxColor                  color_selected;
-    GfxColor                  color_indicator;
-    GfxColor                  color_indicator_inactive;
-    GfxColor                  bg_color;
+    const GfxFont            *Font;
+    GfxColor                  ColorNormal;
+    GfxColor                  ColorSelected;
+    GfxColor                  ColorIndicator;
+    GfxColor                  ColorIndicatorInactive;
+    GfxColor                  BgColor;
     bool                      skip_clear;
     const GfxMenuItem        *items;
     int                       item_count;
@@ -103,5 +103,9 @@ int  GfxMenuListIsHidden (const GfxMenuList *m, int idx);
                  &(GfxMenuList){ __VA_ARGS__ }, \
                  GFX_DRAW_FN(GfxMenuListDraw), \
                  NULL)
+
+GFX_DEFINE_APPLIER(GfxMenuList, ColorIndicator)
+GFX_DEFINE_APPLIER(GfxMenuList, BgColor)
+GFX_DEFINE_APPLIER(GfxMenuList, Font)
 
 #endif

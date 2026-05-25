@@ -48,8 +48,8 @@ void build_bounce(void)
 
     s_bounce_settings_menu = make_menu(BOUNCE_SETTINGS_ITEMS, BOUNCE_SETTINGS_COUNT,
                                        GFX_MENU_INDICATOR_NONE);
-    settings_register_accent(s_bounce_settings_menu, accent_menu);
-    settings_register_bg(s_bounce_settings_menu, bg_menu);
+    settings_register_accent(s_bounce_settings_menu, GFX_APPLIER_FN(GfxMenuList, ColorIndicator));
+    settings_register_bg(s_bounce_settings_menu, GFX_APPLIER_FN(GfxMenuList, BgColor));
     s_bounce_settings_slots[0] = (GfxWidgetSlot){ s_bounce_settings_menu, MENU_SLOT };
     s_bounce_settings_slots[1] = (GfxWidgetSlot){ s_navbar,               NAVBAR_SLOT };
     s_bounce_settings_slots[2] = (GfxWidgetSlot){ make_border(),          BORDER_SLOT };

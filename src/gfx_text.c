@@ -160,17 +160,17 @@ static line_info_t find_next_line(const GfxFont *f, const char *s, int box_w)
  * respects '\n' as a forced line break. Fills with bg_color first when set. */
 void GfxTextboxDraw(GfxRenderingTile *tile, GfxTextbox *tb)
 {
-    if (!tb || !tb->text || !tb->font || tile->box.w <= 0) return;
+    if (!tb || !tb->text || !tb->Font || tile->box.w <= 0) return;
 
-    int line_h = tb->font->line_height;
+    int line_h = tb->Font->line_height;
     if (line_h <= 0) return;
 
-    if (!tb->skip_clear) GfxFillRect(tile->fb, tile->box.x, tile->box.y, tile->box.w, tile->box.h, tb->bg_color);
+    if (!tb->skip_clear) GfxFillRect(tile->fb, tile->box.x, tile->box.y, tile->box.w, tile->box.h, tb->BgColor);
 
     int n_lines = 0;
     const char *p = tb->text;
     while (*p) {
-        line_info_t info = find_next_line(tb->font, p, tile->box.w);
+        line_info_t info = find_next_line(tb->Font, p, tile->box.w);
         n_lines++;
         p = info.next;
     }
@@ -202,13 +202,13 @@ void GfxTextboxDraw(GfxRenderingTile *tile, GfxTextbox *tb)
 
     p = tb->text;
     for (int i = 0; i < skip_lines && *p; i++) {
-        line_info_t info = find_next_line(tb->font, p, tile->box.w);
+        line_info_t info = find_next_line(tb->Font, p, tile->box.w);
         p = info.next;
     }
 
     int line_y = y_top;
     for (int i = 0; i < render_lines && *p; i++) {
-        line_info_t info = find_next_line(tb->font, p, tile->box.w);
+        line_info_t info = find_next_line(tb->Font, p, tile->box.w);
 
         int line_x;
         switch (tb->halign) {
@@ -219,8 +219,8 @@ void GfxTextboxDraw(GfxRenderingTile *tile, GfxTextbox *tb)
         }
 
         for (const char *q = p; q < info.end; q++) {
-            line_x = GfxDrawCharBg(tile->fb, tb->font, line_x, line_y, (u8)*q,
-                                   tb->color, tb->bg_color);
+            line_x = GfxDrawCharBg(tile->fb, tb->Font, line_x, line_y, (u8)*q,
+                                   tb->Color, tb->BgColor);
         }
         p = info.next;
         line_y += line_h;

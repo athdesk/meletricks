@@ -4,9 +4,9 @@
 #include "gfx.h"
 
 typedef struct {
-    const GfxFont *font;
-    GfxColor       color;
-    GfxColor       bg_color;
+    const GfxFont *Font;
+    GfxColor       Color;
+    GfxColor       BgColor;
     bool           skip_clear;
     /* state — pulled from the SDK by BatteryBadgeBindCallback. */
     u8             battery_pct;
@@ -22,5 +22,9 @@ void BatteryBadgeBindCallback(GfxWidget *w);
 #define NewBatteryBadge(...) \
     GfxNewWidget(sizeof(BatteryBadge), &(BatteryBadge){ __VA_ARGS__ }, \
                  GFX_DRAW_FN(BatteryBadgeDraw), NULL)
+
+GFX_DEFINE_APPLIER(BatteryBadge, Color)
+GFX_DEFINE_APPLIER(BatteryBadge, BgColor)
+GFX_DEFINE_APPLIER(BatteryBadge, Font)
 
 #endif

@@ -109,4 +109,15 @@ void GfxBlit2Bpp(GfxFb *fb, int x, int y, int w, int h,
                  const u8 *src, int src_stride_bytes,
                  GfxColor fg, GfxColor bg);
 
+typedef struct { struct GfxFb *fb; GfxBoundingBox box; } GfxRenderingTile;
+
+static inline void GfxFillTile(GfxRenderingTile *tile, GfxColor c)
+{
+    GfxFb *fb = tile->fb;
+    int x = tile->box.x, y = tile->box.y, w = tile->box.w, h = tile->box.h;
+    if (!GfxFbClipRect(fb, &x, &y, &w, &h)) return;
+    u16 *row = &fb->pixels[y * fb->width + x];
+    while (h--) { GfxFillSpan(row, w, c); row += fb->width; }
+}
+
 #endif /* GFX_FB_H */

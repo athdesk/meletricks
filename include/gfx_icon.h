@@ -1,6 +1,6 @@
 #ifndef GFX_ICON_H
 #define GFX_ICON_H
-#include "gfx.h"
+#include "gfx_widgets.h"
 
 /* `h` here is the available height. It's meant as a hint.
  * Proportional icons: fixed aspect ratio, variable size.

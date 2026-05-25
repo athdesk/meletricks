@@ -38,10 +38,10 @@ static void apply_fade(GfxFb *fb, int x, int y, int fade_w, int h, GfxColor bg)
 
 void GfxBreadcrumbDraw(GfxRenderingTile *tile, GfxBreadcrumb *bc)
 {
-    if (!bc || !bc->font || tile->box.w <= 0) return;
-    int h = (tile->box.h > 0) ? tile->box.h : bc->font->line_height;
+    if (!bc || !bc->Font || tile->box.w <= 0) return;
+    int h = (tile->box.h > 0) ? tile->box.h : bc->Font->line_height;
 
-    if (!bc->skip_clear) GfxFillRect(tile->fb, tile->box.x, tile->box.y, tile->box.w, h, bc->bg_color);
+    if (!bc->skip_clear) GfxFillRect(tile->fb, tile->box.x, tile->box.y, tile->box.w, h, bc->BgColor);
 
     const char *labels[BREADCRUMB_MAX_DEPTH];
     int n = 0;
@@ -53,11 +53,11 @@ void GfxBreadcrumbDraw(GfxRenderingTile *tile, GfxBreadcrumb *bc)
     if (n <= 0) return;
 
     const char *sep   = bc->separator ? bc->separator : " > ";
-    int         sep_w = GfxTextWidth(bc->font, sep);
+    int         sep_w = GfxTextWidth(bc->Font, sep);
     int total_w = 0;
     for (int i = 0; i < n; i++) {
         if (i > 0) total_w += sep_w;
-        total_w += GfxTextWidth(bc->font, labels[i]);
+        total_w += GfxTextWidth(bc->Font, labels[i]);
     }
 
     GfxClip saved = GfxFbPushClip(tile->fb, (GfxBoundingBox){tile->box.x, tile->box.y, tile->box.w, h});
@@ -65,8 +65,8 @@ void GfxBreadcrumbDraw(GfxRenderingTile *tile, GfxBreadcrumb *bc)
     if (total_w <= tile->box.w) {
         int px = tile->box.x;
         for (int i = 0; i < n; i++) {
-            if (i > 0) px = GfxDrawTextBg(tile->fb, bc->font, px, tile->box.y, sep, bc->color, bc->bg_color);
-            px = GfxDrawTextBg(tile->fb, bc->font, px, tile->box.y, labels[i], bc->color, bc->bg_color);
+            if (i > 0) px = GfxDrawTextBg(tile->fb, bc->Font, px, tile->box.y, sep, bc->Color, bc->BgColor);
+            px = GfxDrawTextBg(tile->fb, bc->Font, px, tile->box.y, labels[i], bc->Color, bc->BgColor);
         }
         GfxFbPopClip(tile->fb, saved);
         return;
@@ -74,10 +74,10 @@ void GfxBreadcrumbDraw(GfxRenderingTile *tile, GfxBreadcrumb *bc)
 
     int px = tile->box.x + tile->box.w - total_w;
     for (int i = 0; i < n; i++) {
-        if (i > 0) px = GfxDrawTextBg(tile->fb, bc->font, px, tile->box.y, sep, bc->color, bc->bg_color);
-        px = GfxDrawTextBg(tile->fb, bc->font, px, tile->box.y, labels[i], bc->color, bc->bg_color);
+        if (i > 0) px = GfxDrawTextBg(tile->fb, bc->Font, px, tile->box.y, sep, bc->Color, bc->BgColor);
+        px = GfxDrawTextBg(tile->fb, bc->Font, px, tile->box.y, labels[i], bc->Color, bc->BgColor);
     }
-    apply_fade(tile->fb, tile->box.x, tile->box.y, bc->fade_width, h, bc->bg_color);
+    apply_fade(tile->fb, tile->box.x, tile->box.y, bc->fade_width, h, bc->BgColor);
 
     GfxFbPopClip(tile->fb, saved);
 }

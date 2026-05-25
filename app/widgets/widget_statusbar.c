@@ -165,26 +165,26 @@ int StatusBarTick(StatusBar *s)
 
 void StatusBarDraw(GfxRenderingTile *tile, StatusBar *s)
 {
-    if (!s || !s->font) return;
+    if (!s || !s->Font) return;
 
     int wpm_x = tile->box.x + tile->box.w - 8 - WPM_ICON_W;
-    if (!s->skip_clear) GfxFillTile(tile, s->bg_color);
+    if (!s->skip_clear) GfxFillTile(tile, s->BgColor);
 
     int cy     = tile->box.y + tile->box.h / 2 + 1;  /* +1 keeps text below the divider */
     int icon_y = cy - 12;                              /* tallest icons are ~24-26 px */
 
     /* -- Left cluster ---------------------------------- */
     int x = tile->box.x + 10;
-    icon_caps(tile->fb, x, icon_y, s->caps_on, s->font, s->color, s->color_dim, s->bg_color);
+    icon_caps(tile->fb, x, icon_y, s->caps_on, s->Font, s->Color, s->ColorDim, s->BgColor);
     x += 32;       /* icon_caps width 24 + 8 spacing */
 
-    icon_transport(tile->fb, x, icon_y, s->conn, s->font, s->color_dim, s->bg_color);
+    icon_transport(tile->fb, x, icon_y, s->conn, s->Font, s->ColorDim, s->BgColor);
     x += 72;       /* transport icon up to 64 wide + `8 spacing */
 
-    icon_layer(tile->fb, x, icon_y, s->layer, s->font,
-               (s->layer - 1) ? s->color : s->color_dim, s->bg_color);
+    icon_layer(tile->fb, x, icon_y, s->layer, s->Font,
+               (s->layer - 1) ? s->Color : s->ColorDim, s->BgColor);
 
     /* -- Right cluster --------------------------------- */
-    GfxColor wpm_c = s->wpm_value ? s->color : s->color_dim;
-    icon_wpm(tile->fb, wpm_x, icon_y, s->wpm_value, s->font, wpm_c, s->bg_color);
+    GfxColor wpm_c = s->wpm_value ? s->Color : s->ColorDim;
+    icon_wpm(tile->fb, wpm_x, icon_y, s->wpm_value, s->Font, wpm_c, s->BgColor);
 }

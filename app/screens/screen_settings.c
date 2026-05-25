@@ -77,8 +77,8 @@ void build_settings_screens(void)
 {
     s_settings_menu = make_menu(SETTINGS_ITEMS, SETTINGS_COUNT,
                                 GFX_MENU_INDICATOR_LEFT);
-    settings_register_accent(s_settings_menu, accent_menu);
-    settings_register_bg(s_settings_menu, bg_menu);
+    settings_register_accent(s_settings_menu, GFX_APPLIER_FN(GfxMenuList, ColorIndicator));
+    settings_register_bg(s_settings_menu, GFX_APPLIER_FN(GfxMenuList, BgColor));
     s_settings_slots[0] = (GfxWidgetSlot){ s_settings_menu, MENU_SLOT };
     s_settings_slots[1] = (GfxWidgetSlot){ s_navbar,        NAVBAR_SLOT };
     s_settings_slots[2] = (GfxWidgetSlot){ make_border(),   BORDER_SLOT };
@@ -92,8 +92,8 @@ void build_settings_screens(void)
     /* Debug sub-screen — Realtime toggle plus on-screen instrumentation
      * (FPS overlay, debug-pink paint mode). Same chrome as Settings. */
     s_debug_menu = make_menu(DEBUG_ITEMS, DEBUG_COUNT, GFX_MENU_INDICATOR_NONE);
-    settings_register_accent(s_debug_menu, accent_menu);
-    settings_register_bg(s_debug_menu, bg_menu);
+    settings_register_accent(s_debug_menu, GFX_APPLIER_FN(GfxMenuList, ColorIndicator));
+    settings_register_bg(s_debug_menu, GFX_APPLIER_FN(GfxMenuList, BgColor));
     s_debug_slots[0] = (GfxWidgetSlot){ s_debug_menu, MENU_SLOT };
     s_debug_slots[1] = (GfxWidgetSlot){ s_navbar,     NAVBAR_SLOT };
     s_debug_slots[2] = (GfxWidgetSlot){ make_border(), BORDER_SLOT };
