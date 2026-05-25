@@ -1,7 +1,5 @@
-/* AnimDemo: a small ball with a fading trail that bounces inside its
- * box. Velocity scales with WPM so the body becomes a typing meter. */
-#ifndef HELLO_WIDGET_ANIM_H
-#define HELLO_WIDGET_ANIM_H
+#ifndef WIDGET_ANIM_H
+#define WIDGET_ANIM_H
 
 #include "gfx.h"
 

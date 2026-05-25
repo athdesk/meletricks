@@ -1,8 +1,8 @@
 /* Persistent bottom strip with caps-lock, connection, layer, and
  * battery indicators. Shared across every screen; no data source
  * yet — the four state fields are placeholders the renderer reads. */
-#ifndef HELLO_WIDGET_STATUSBAR_H
-#define HELLO_WIDGET_STATUSBAR_H
+#ifndef WIDGET_STATUSBAR_H
+#define WIDGET_STATUSBAR_H
 
 #include "gfx.h"
 
@@ -22,7 +22,7 @@ typedef struct {
     bool           caps_on;
     u8             conn;           /* StatusBarConn */
     u8             layer;
-    /* WPM state — polled by StatusBarTick at ~10 Hz */
+    /* WPM state — polled by StatusBarTick at ~10 Hz (avoid too many divisions) */
     u32            wpm_value;
     u32            wpm_check_ms;
 } StatusBar;

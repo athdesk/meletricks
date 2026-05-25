@@ -6,7 +6,7 @@
 
 #define WPM_ICON_W 72
 
-static void icon_caps(GfxFb *fb, int x, int y, int caps_on,
+static inline void icon_caps(GfxFb *fb, int x, int y, int caps_on,
                       const GfxFont *font, GfxColor c_active,
                       GfxColor c_dim, GfxColor c_bg)
 {
@@ -30,7 +30,7 @@ static void icon_caps(GfxFb *fb, int x, int y, int caps_on,
     GfxDrawCharBg(fb, font, text_x, text_y, (u8)buf[0], c, c_bg);
 }
 
-static void icon_transport(GfxFb *fb, int x, int y, u8 connection_type, const GfxFont *font, GfxColor c, GfxColor c_bg)
+static inline void icon_transport(GfxFb *fb, int x, int y, u8 connection_type, const GfxFont *font, GfxColor c, GfxColor c_bg)
 {
     int icon_w = 64;
     int icon_h = 24;
@@ -58,7 +58,7 @@ static void icon_transport(GfxFb *fb, int x, int y, u8 connection_type, const Gf
     GfxDrawTextBg(fb, font, text_x, text_y, buf, c, c_bg);
 }
 
-static void icon_layer(GfxFb *fb, int x, int y, u8 layer, const GfxFont *font, GfxColor c, GfxColor c_bg)
+static inline void icon_layer(GfxFb *fb, int x, int y, u8 layer, const GfxFont *font, GfxColor c, GfxColor c_bg)
 {
     int icon_w = 32;
     int icon_h = 24;
@@ -82,7 +82,7 @@ static void icon_layer(GfxFb *fb, int x, int y, u8 layer, const GfxFont *font, G
     GfxDrawTextBg(fb, font, text_x, text_y, buf, c, c_bg);
 }
 
-static void icon_wpm(GfxFb *fb, int x, int y, u32 v, const GfxFont *font,
+static inline void icon_wpm(GfxFb *fb, int x, int y, u32 v, const GfxFont *font,
                      GfxColor c, GfxColor c_bg)
 {
     int icon_w = WPM_ICON_W;

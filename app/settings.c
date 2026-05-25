@@ -150,6 +150,7 @@ static int        s_bg_apply_n;
 static GfxScreen *s_screens[MAX_SCREENS];
 static int        s_screens_n;
 
+// Helpers needed for background set feature.
 void settings_register_bg(GfxWidget *w, BgApplyFn fn)
 {
     if (s_bg_apply_n < MAX_BG_APPLY) s_bg_apply[s_bg_apply_n++] = (BgEntry){ w, fn };

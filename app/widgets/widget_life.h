@@ -2,8 +2,8 @@
  * Toroidal topology (both axes wrap). Grid arrays are external heap
  * allocations — embedding them would push NewLifeDemo's compound
  * literal (~4.6 KB) over the stack budget. */
-#ifndef HELLO_WIDGET_LIFE_H
-#define HELLO_WIDGET_LIFE_H
+#ifndef WIDGET_LIFE_H
+#define WIDGET_LIFE_H
 
 #include "gfx.h"
 
@@ -13,7 +13,7 @@ typedef struct {
     GfxColor color;
     GfxColor bg_color;
     u32      step_interval_ms;
-    /* internal — caller allocs after construction (see hello_blob.c). */
+    /* internal — caller allocs after construction (TODO: find a better way). */
     u8      *grid;
     u8      *next;
     u8      *prev_drawn;

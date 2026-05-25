@@ -1,7 +1,5 @@
-/* WPM tracker: ring of stroke timestamps + linear decay, plus a
- * 60-sample/min history buffer that feeds the WPM graph screen. */
-#ifndef HELLO_WPM_H
-#define HELLO_WPM_H
+#ifndef WPM_H
+#define WPM_H
 
 #include "gfx.h"
 

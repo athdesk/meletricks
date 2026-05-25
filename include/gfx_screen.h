@@ -67,7 +67,7 @@ GfxWidget *GfxNewWidget(u32 data_size, const void *data_init,
                         GfxWidgetDrawFn draw, GfxWidgetTickFn tick);
 
 void GfxMarkDirty   (GfxWidget *w);
-void DeleteGfxWidget(GfxWidget *w);
+void GfxDeleteWidget(GfxWidget *w);
 
 /* Register `t` as a render target this widget reads from. Silently
  * drops if dep_count is already at GFX_WIDGET_MAX_DEPS. */

@@ -10,8 +10,8 @@
  * Children are positioned by the GfxBoundingBox supplied to
  * NavBarAddChild; NavBar doesn't do layout, it just dispatches. */
 
-#ifndef HELLO_WIDGET_NAVBAR_H
-#define HELLO_WIDGET_NAVBAR_H
+#ifndef WIDGET_NAVBAR_H
+#define WIDGET_NAVBAR_H
 
 #include "gfx.h"
 

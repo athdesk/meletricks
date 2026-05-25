@@ -347,8 +347,6 @@ static void fps_present_hook(GfxFb *fb)
 
 static void build_overlays(void)
 {
-    /* Battery badge takes the top-right corner. Updates via SDK push
-     * callback, not polling. */
     GfxWidget *s_battery_badge = NewBatteryBadge(
         .font = &font_montserrat_14,
         .color = accent_color(), .bg_color = bg_color_value(),
@@ -358,11 +356,6 @@ static void build_overlays(void)
     settings_register_header_font(s_battery_badge, font_battery);
     BatteryBadgeBindCallback(s_battery_badge);
 
-    /* Statusbar sits 34 px tall at the bottom. Body shrinks (BODY_H
-     * reduced) so the two regions touch cleanly at y = BODY_TOP_Y +
-     * BODY_H = 136. Same instance referenced from every demo screen.
-     * Status fields (caps / conn / layer) update via the SDK push
-     * callback wired below — no per-frame polling. */
     s_statusbar = NewStatusBar(
         .font = &font_fira_mono_14,
         .color = accent_color(),
@@ -373,10 +366,6 @@ static void build_overlays(void)
     settings_register_accent(s_statusbar, accent_statusbar);
     settings_register_bg(s_statusbar, bg_statusbar);
 
-    /* NavBar consolidates the upper bar — owns the breadcrumb and
-     * the battery badge as children, and paints its own hairline
-     * separator along its bottom. From the library's perspective
-     * NavBar is one widget; child dispatch happens internally. */
     GfxWidget *s_breadcrumb = make_breadcrumb();
     s_navbar = NewNavBar(
         .bg_color = bg_color_value(),
@@ -397,7 +386,7 @@ static void build_overlays(void)
  * the shared header overlays, breadcrumb, and border last so the
  * outline always wins (paint order = list order). */
 
-FR_SETUP void hello_setup(void)
+FR_SETUP void app_setup(void)
 {
     gui_pause();
     lcd_te_sync_disable();
@@ -421,7 +410,7 @@ FR_SETUP void hello_setup(void)
     GfxNavTo(&s_main);
 }
 
-FR_TASK(hello_loop, 0x80000)
+FR_TASK(app_loop, 0x80000)
 {
     handle_input();
     sleep_tick();

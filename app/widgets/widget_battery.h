@@ -1,8 +1,5 @@
-/* BatteryBadge: percent text + battery icon. Sits in the top-right
- * corner of every demo screen and updates via the SDK's battery
- * push callback (no per-frame polling). */
-#ifndef HELLO_WIDGET_BATTERY_H
-#define HELLO_WIDGET_BATTERY_H
+#ifndef WIDGET_BATTERY_H
+#define WIDGET_BATTERY_H
 
 #include "gfx.h"
 
@@ -19,7 +16,7 @@ typedef struct {
 void BatteryBadgeDraw(GfxRenderingTile *tile, BatteryBadge *b);
 
 /* Hook the SDK's battery push callback. Call once after construction;
- * only one BatteryBadge instance is supported. */
+ * only one BatteryBadge can use this. */
 void BatteryBadgeBindCallback(GfxWidget *w);
 
 #define NewBatteryBadge(...) \

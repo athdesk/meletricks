@@ -1,7 +1,7 @@
 /* Settings state: global palette, sleep, clock seconds. Screen-specific
  * tunables (WPM graph, Life, Wireframe) live in their own screen .c files. */
-#ifndef HELLO_SETTINGS_H
-#define HELLO_SETTINGS_H
+#ifndef SETTINGS_H
+#define SETTINGS_H
 
 #include "gfx.h"
 

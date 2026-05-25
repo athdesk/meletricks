@@ -11,9 +11,9 @@
 #include "timer.h"           /* fr_millis */
 #include <string.h>
 
-static GfxFb     *g_fb;
-static GfxScreen *g_current;
-static GfxScreen *g_last_drawn;
+static GfxFb     *s_fb;
+static GfxScreen *s_current;
+static GfxScreen *s_last_drawn;
 
 static u32 s_fps_frames;
 static u32 s_fps_window_start;
@@ -82,9 +82,9 @@ static void tick_visible_deps(const GfxScreen *s)
 
 void GfxInit(GfxFb *fb)
 {
-    g_fb         = fb;
-    g_current    = NULL;
-    g_last_drawn = NULL;
+    s_fb         = fb;
+    s_current    = NULL;
+    s_last_drawn = NULL;
 }
 
 GfxWidget *GfxNewWidget(u32 data_size, const void *data_init,
@@ -104,7 +104,7 @@ GfxWidget *GfxNewWidget(u32 data_size, const void *data_init,
     return w;
 }
 
-void DeleteGfxWidget(GfxWidget *w)
+void GfxDeleteWidget(GfxWidget *w)
 {
     if (!w) return;
     if (w->data) GfxFree(w->data);
@@ -113,27 +113,27 @@ void DeleteGfxWidget(GfxWidget *w)
 
 void GfxMarkDirty(GfxWidget *w) { if (w) w->dirty = true; }
 
-void GfxForceFullRedraw(void) { g_last_drawn = NULL; }
+void GfxForceFullRedraw(void) { s_last_drawn = NULL; }
 
-GfxScreen *GfxCurrentScreen(void) { return g_current; }
+GfxScreen *GfxCurrentScreen(void) { return s_current; }
 
 void GfxNavTo(GfxScreen *target)
 {
-    if (!target || target == g_current) return;
+    if (!target || target == s_current) return;
 
     /* If target is already an ancestor, this is "go back up to it" —
      * cut the chain at target rather than creating a cycle. */
-    for (GfxScreen *s = g_current; s; s = s->parent) {
-        if (s == target) { g_current = target; return; }
+    for (GfxScreen *s = s_current; s; s = s->parent) {
+        if (s == target) { s_current = target; return; }
     }
 
-    target->parent = g_current;
-    g_current      = target;
+    target->parent = s_current;
+    s_current      = target;
 }
 
 void GfxNavBack(void)
 {
-    if (g_current && g_current->parent) g_current = g_current->parent;
+    if (s_current && s_current->parent) s_current = s_current->parent;
 }
 
 static void update_fps_counter(void)
@@ -151,16 +151,16 @@ static void update_fps_counter(void)
 
 static void do_present(void)
 {
-    if (s_present_hook) s_present_hook(g_fb);
-    m_draw_frame((const u8 *)g_fb->pixels);
+    if (s_present_hook) s_present_hook(s_fb);
+    m_draw_frame((const u8 *)s_fb->pixels);
     update_fps_counter();
 }
 
 void GfxTick(void)
 {
-    if (!g_fb || !g_current) return;
-    GfxScreen *s = g_current;
-    int screen_changed = (s != g_last_drawn);
+    if (!s_fb || !s_current) return;
+    GfxScreen *s = s_current;
+    int screen_changed = (s != s_last_drawn);
 
     s_frame++;
     tick_visible_deps(s);
@@ -169,13 +169,13 @@ void GfxTick(void)
     if (s_debug_fill) {
         /* The purpose of this is to understand what is being actually written to framebuffer
          * at every refresh. In order to be efficient with our memory bandwidth. */
-        GfxFbClear(g_fb, GFX_MAGENTA);
+        GfxFbClear(s_fb, GFX_MAGENTA);
     }
 
     bool any_dirty = 0;
 
     if (screen_changed) {
-        GfxFbClear(g_fb, s->clear_color);
+        GfxFbClear(s_fb, s->clear_color);
         s_screen_change_frame = 1;
     }
 
@@ -193,11 +193,11 @@ void GfxTick(void)
     for (int i = 0; i < s->slot_count; i++) {
         GfxWidgetSlot *sl = &s->slots[i];
         if (!sl->widget || !sl->widget->dirty || !sl->widget->draw) continue;
-        GfxRenderingTile tile = { g_fb, sl->box };
+        GfxRenderingTile tile = { s_fb, sl->box };
         sl->widget->draw(&tile, sl->widget->data);
         sl->widget->dirty = 0;
     }
     do_present();
-    g_last_drawn = s;
+    s_last_drawn = s;
     s_screen_change_frame = 0;
 }
