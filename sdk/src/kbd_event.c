@@ -151,7 +151,6 @@ static void log_packet(u8 opcode, u16 len, const u8 *payload, u8 csum_ok)
     u32 n = len;
     if (n > KBD_PKT_LOG_MAX_PAYLOAD) n = KBD_PKT_LOG_MAX_PAYLOAD;
     for (u32 j = 0; j < n; j++) e->payload[j] = payload[j];
-    for (u32 j = n; j < KBD_PKT_LOG_MAX_PAYLOAD; j++) e->payload[j] = 0;
 
     g_kbd_pkt_log_widx = (i + 1u) % KBD_PKT_LOG_ENTRIES;
 }
@@ -201,13 +200,8 @@ static void dispatch_status_packet(void)
         s_battery.is_charging    = charging;
         s_battery.last_update_ms = now_ms;
 
-        if (changed && s_battery_cb) {
-            kbd_battery_t snap;
-            snap.battery_pct    = pct;
-            snap.is_charging    = charging;
-            snap.last_update_ms = now_ms;
-            s_battery_cb(&snap);
-        }
+        if (changed && s_battery_cb)
+            s_battery_cb((const kbd_battery_t *)&s_battery);
     }
 
     /* Caps/conn/layer/OS/win-lock: need payload[21]. */
@@ -230,16 +224,8 @@ static void dispatch_status_packet(void)
         s_status.win_lock         = win_lock;
         s_status.last_update_ms   = now_ms;
 
-        if (changed && s_status_cb) {
-            kbd_status_t snap;
-            snap.caps_lock_active = caps;
-            snap.connection_type  = conn;
-            snap.kbd_layer        = layer;
-            snap.os_mode          = os_mode;
-            snap.win_lock         = win_lock;
-            snap.last_update_ms   = now_ms;
-            s_status_cb(&snap);
-        }
+        if (changed && s_status_cb)
+            s_status_cb((const kbd_status_t *)&s_status);
     }
 }
 
@@ -273,16 +259,8 @@ static void dispatch_pc_sensor_packet(void)
     s_sensors.net_speed      = net;
     s_sensors.last_update_ms = fr_millis();
 
-    if (s_sensors_cb) {
-        kbd_sensors_t snap;
-        snap.cpu_temp_c     = cpu;
-        snap.gpu_temp_c     = gpu;
-        snap.unk_field      = unk;
-        snap.fan_rpm        = rpm;
-        snap.net_speed      = net;
-        snap.last_update_ms = s_sensors.last_update_ms;
-        s_sensors_cb(&snap);
-    }
+    if (s_sensors_cb)
+        s_sensors_cb((const kbd_sensors_t *)&s_sensors);
 }
 
 static void dispatch_badge_temps_packet(u8 opcode)
@@ -315,15 +293,8 @@ static void dispatch_badge_temps_packet(u8 opcode)
     s_badge.temp_c_c       = c;
     s_badge.last_update_ms = fr_millis();
 
-    if (s_badge_cb) {
-        kbd_badge_temps_t snap;
-        snap.badge_id       = badge;
-        snap.temp_a_c       = a;
-        snap.temp_b_c       = b;
-        snap.temp_c_c       = c;
-        snap.last_update_ms = s_badge.last_update_ms;
-        s_badge_cb(&snap);
-    }
+    if (s_badge_cb)
+        s_badge_cb((const kbd_badge_temps_t *)&s_badge);
 }
 
 static void dispatch_rtc_packet(void)
@@ -351,18 +322,8 @@ static void dispatch_rtc_packet(void)
     s_rtc.synced       = 1u;
     s_rtc.last_sync_ms = fr_millis();
 
-    if (s_rtc_cb) {
-        kbd_rtc_t snap;
-        snap.year         = s_rtc.year;
-        snap.month        = s_rtc.month;
-        snap.day          = s_rtc.day;
-        snap.hour         = s_rtc.hour;
-        snap.minute       = s_rtc.minute;
-        snap.second       = s_rtc.second;
-        snap.synced       = 1u;
-        snap.last_sync_ms = s_rtc.last_sync_ms;
-        s_rtc_cb(&snap);
-    }
+    if (s_rtc_cb)
+        s_rtc_cb((const kbd_rtc_t *)&s_rtc);
 }
 
 static void parse_byte(u8 b)
