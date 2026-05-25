@@ -8,11 +8,13 @@ GfxWidget *s_graph_settings_menu;
 static GfxWidgetSlot s_graph_slots[4];
 static GfxWidgetSlot s_graph_settings_slots[3];
 
+#define WPM_DEFAULT_SCALE (120)
+
 /* -- Graph tunables ---------------------------------------------- */
 
 static GfxWidget *s_graph_widget;
-static int        s_wpm_max        = 150;
-static int        s_wpm_window_idx = 1;  /* default: 1 min */
+static int        s_wpm_max        = WPM_DEFAULT_SCALE;
+static int        s_wpm_window_idx = 1;
 
 static const int  WPM_WINDOW_SAMPLES[] = { 30, 60, 120, 300, 600 };
 static const char *const WPM_WINDOW_LABELS[] = {
@@ -111,7 +113,7 @@ void build_graph(void)
         .legend_color = secondary_color(),
         .legend_font  = &font_fira_mono_14,
         .data_min     = 0,
-        .data_max     = 120,
+        .data_max     = WPM_DEFAULT_SCALE,
         .data         = wpm_history,
         .data_count   = WPM_HISTORY_LEN,
     );
