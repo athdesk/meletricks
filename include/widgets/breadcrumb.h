@@ -2,9 +2,7 @@
 #define GFX_WIDGETS_BREADCRUMB_H
 #include "gfx.h"
 
-/* -- Breadcrumb ---- walks GfxCurrentScreen()->parent chain to build
- * its labels; no labels field needed. Repaints on screen change via
- * the per-widget dirty flag set by GfxTick. */
+/* Breadcrumb: indicator which shows the current navigation stack */
 typedef struct {
     int            fade_width;
     const GfxFont *font;

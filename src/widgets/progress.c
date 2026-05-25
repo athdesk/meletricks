@@ -1,6 +1,3 @@
-/* progress — value/max indicator in three styles: flat bar, battery
- * (rounded body + optional cathode nub), and circular gauge (GfxArc). */
-
 #include "gfx.h"
 
 static void linear_fill(GfxFb *fb,

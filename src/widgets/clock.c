@@ -114,7 +114,7 @@ void GfxClockDraw(GfxRenderingTile *tile, GfxClock *c)
     })
 
     if (!c->cache_ready || c->slot_count != n) {
-        if (!c->skip_clear) GfxFillRect(tile->fb, tile->box.x, tile->box.y, tile->box.w, tile->box.h, c->bg_color);
+        if (!c->skip_clear) GfxFillTile(tile, c->bg_color);
         clock_layout(c, tile->box, buf, n);
         for (int i = 0; i < n; i++) {
             GfxDrawCharBg(tile->fb, c->font, CLOCK_PEN_X(i, buf[i]), c->text_y,

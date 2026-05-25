@@ -1,20 +1,14 @@
 #ifndef GFX_SCREEN_H
 #define GFX_SCREEN_H
 
-#include "fr_types.h"
+#include "gfx_fb.h"
 
 #ifndef true
 #define true  1
 #define false 0
 #endif
 
-
-struct GfxFb;
 struct GfxWidget;
-
-/* -- Geometry ---------------------------------------------------------- */
-
-typedef struct { int x, y, w, h; } GfxBoundingBox;
 
 /* Full rendering context delivered to every widget draw function */
 typedef struct {

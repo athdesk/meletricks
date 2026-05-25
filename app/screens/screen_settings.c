@@ -55,7 +55,7 @@ static const GfxMenuItem DEBUG_ITEMS[] = {
     { "Key events", GFX_MENU_LINK,
       .link   = { &s_text_scr } },
     { "Sleep now",  GFX_MENU_ACTION,
-      .action = { meletweaks_sleep_now } },
+      .action = { meletricks_sleep_now } },
 };
 #define DEBUG_COUNT ((int)(sizeof(DEBUG_ITEMS)/sizeof(DEBUG_ITEMS[0])))
 

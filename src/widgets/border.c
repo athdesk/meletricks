@@ -1,7 +1,3 @@
-/* border — rectangle outline widget. Stacks `thickness` concentric
- * rounded outlines, each stepped one pixel inward with the radius
- * tracking the step so the curves stay parallel. */
-
 #include "gfx.h"
 
 void GfxBorderDraw(GfxRenderingTile *tile, GfxBorder *b)

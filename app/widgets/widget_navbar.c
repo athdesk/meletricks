@@ -27,9 +27,7 @@ int NavBarTick(NavBar *nb)
 void NavBarDraw(GfxRenderingTile *tile, NavBar *nb)
 {
     if (!nb) return;
-    if (!nb->skip_clear)
-        GfxFillRect(tile->fb, tile->box.x, tile->box.y,
-                    tile->box.w, tile->box.h, nb->bg_color);
+    if (!nb->skip_clear) GfxFillTile(tile, nb->bg_color);
 
     /* Dispatch children. Always paints each child on a NavBar redraw,
      * since the library can only see NavBar's dirty flag and a single

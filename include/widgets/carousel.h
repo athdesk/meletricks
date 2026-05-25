@@ -1,7 +1,7 @@
 #ifndef GFX_WIDGETS_CAROUSEL_H
 #define GFX_WIDGETS_CAROUSEL_H
 #include "gfx.h"
-#include "widgets/icon.h"
+#include "gfx_icon.h"
 
 typedef struct {
     const char *label;
@@ -19,6 +19,9 @@ typedef struct {
     int                    anim_speed;    /* px/tick; 0 = instant     */
     /* private */
     int                    _anim_offset;  /* current render offset    */
+    int                    _cached_in_w;  /* selected icon width      */
+    int                    _cached_out_w; /* outgoing icon width      */
+    int                    _cached_slide; /* total slide distance     */
     bool                   skip_clear;
 } GfxCarousel;
 

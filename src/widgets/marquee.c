@@ -1,5 +1,3 @@
-/* marquee — horizontally scrolling text. */
-
 #include "gfx.h"
 #include "timer.h"
 

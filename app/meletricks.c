@@ -1,7 +1,3 @@
-﻿/* meletweaks â€” demo entry: builds all screens, wires registries,
- * dispatches keyboard input. Each widget kind lives in its own
- * widget_*.c file; settings state in settings.c; WPM in wpm.c. */
-
 #include "common.h"
 #include "settings.h"
 #include "wpm.h"
@@ -20,17 +16,9 @@
 #include "screens/screen_text.h"
 #include "screens/screen_main.h"
 
-/* -- Framebuffer ------------------------------------------------ */
-
 static GfxFb s_fb;
 
-/* -- Shared overlay background ---------------------------------- *
- * Bounce + Wireframe both occupy the same body geometry, so one
- * buffer covers both. The pixel array is static â€” at ~64 KB it's
- * well past what ke_malloc will hand out, but it sits in BSS which
- * the linker maps into PSRAM. The background is itself a widget
- * (here a clock) wrapped in a GfxRenderTarget so the library
- * auto-ticks it inside GfxTick. */
+// s_overlay_bg is the background widget for Bounce and Wireframe
 #define OVERLAY_BG_W  (LCD_W - 2 * BODY_INSET_X)
 #define OVERLAY_BG_H  (EXPANDED_BODY_H)
 static GfxFb           s_overlay_bg;
@@ -38,7 +26,6 @@ static u16             s_overlay_bg_pixels[OVERLAY_BG_W * OVERLAY_BG_H];
 static GfxWidget      *s_overlay_bg_widget;
 GfxRenderTarget        s_overlay_bg_target;
 
-/* -- Shared chrome widget pointers ------------------------------ */
 
 GfxWidget *s_navbar;
 GfxWidget *s_statusbar;
@@ -136,13 +123,13 @@ GfxWidget *make_placeholder(const char *text)
     return w;
 }
 
-/* Menu fills the body area down to ~y=170 â€” settings screens don't
+/* Menu fills the body area down to ~y=170 — settings screens don't
  * carry the statusbar so we get the extra ~28 px to use. Tight item
  * spacing (4 px gutter, 24 px per row) lets the longer Settings list
  * fit 6 rows visible instead of 5 with the room we have. */
 GfxWidget *make_menu(const GfxMenuItem *items, int n, GfxMenuIndicatorAlign align)
 {
-    /* Menu uses the full no-statusbar area, not BODY_TOP_Y â€” the
+    /* Menu uses the full no-statusbar area, not BODY_TOP_Y — the
      * body shift that gives demos visual breathing space would just
      * eat rows the menu wants for items. */
     GfxWidget *w = NewGfxMenuList(
@@ -167,7 +154,7 @@ GfxWidget *make_menu(const GfxMenuItem *items, int n, GfxMenuIndicatorAlign alig
 
 static int  s_asleep = 0;
 static u32  s_last_activity_ms = 0;
-static int  s_input_inverted = 0;
+static int  s_input_inverted = 1;
 int  input_inverted_get(void)  { return s_input_inverted; }
 void input_inverted_set(int v) { s_input_inverted = v ? 1 : 0; }
 
@@ -182,41 +169,6 @@ static GfxWidget *current_menu_widget(void)
     if (top == &s_graph_settings_scr)     return s_graph_settings_menu;
     if (top == &s_fonts_scr)              return s_fonts_menu;
     return NULL;
-}
-
-static void menu_activate(GfxWidget *mw)
-{
-    if (!mw) return;
-    GfxMenuList *m = mw->data;
-    if (!m || m->item_count <= 0) return;
-    if (m->selected < 0 || m->selected >= m->item_count) return;
-    const GfxMenuItem *it = &m->items[m->selected];
-
-    /* ENTER toggles slider/choice edit mode; UP/DOWN then adjusts. */
-    if (m->editing) {
-        m->editing = 0;
-        GfxMarkDirty(mw);
-        return;
-    }
-    switch (it->type) {
-    case GFX_MENU_SLIDER:
-    case GFX_MENU_CHOICE:
-        m->editing = 1;
-        GfxMarkDirty(mw);
-        break;
-    case GFX_MENU_TOGGLE:
-        if (it->toggle.get && it->toggle.set) {
-            it->toggle.set(!it->toggle.get());
-            GfxMarkDirty(mw);
-        }
-        break;
-    case GFX_MENU_LINK:
-        if (it->link.target) GfxNavTo((GfxScreen *)it->link.target);
-        break;
-    case GFX_MENU_ACTION:
-        if (it->action.activate) it->action.activate();
-        break;
-    }
 }
 
 static void handle_input(void)
@@ -287,9 +239,7 @@ static void handle_input(void)
                 GfxCarouselPrev(s_main_carousel->data);
                 GfxMarkDirty(s_main_carousel);
             } else if (menu) {
-                GfxMenuList *m = menu->data;
-                if (m->editing) GfxMenuListAdjust(m, -1);
-                else            GfxMenuListSelectPrev(m);
+                GfxMenuListUp(menu->data);
                 GfxMarkDirty(menu);
             }
             break;
@@ -298,9 +248,7 @@ static void handle_input(void)
                 GfxCarouselNext(s_main_carousel->data);
                 GfxMarkDirty(s_main_carousel);
             } else if (menu) {
-                GfxMenuList *m = menu->data;
-                if (m->editing) GfxMenuListAdjust(m, +1);
-                else            GfxMenuListSelectNext(m);
+                GfxMenuListDown(menu->data);
                 GfxMarkDirty(menu);
             }
             break;
@@ -316,16 +264,11 @@ static void handle_input(void)
             } else if (top == &s_graph_scr) {
                 GfxNavTo(&s_graph_settings_scr);
             } else if (menu) {
-                menu_activate(menu);
+                GfxMenuListEnter(menu);
             }
             break;
         case KBD_LCD_BACK:
-            if (menu && ((GfxMenuList *)menu->data)->editing) {
-                ((GfxMenuList *)menu->data)->editing = 0;
-                GfxMarkDirty(menu);
-            } else {
-                GfxNavBack();
-            }
+            if (!GfxMenuListBack(menu)) GfxNavBack();
             break;
         default: break;
         }
@@ -334,7 +277,7 @@ static void handle_input(void)
 
 /* -- Sleep ------------------------------------------------------ */
 
-void meletweaks_sleep_now(void)
+void meletricks_sleep_now(void)
 {
     s_asleep = 1;
     lcd_sleep();
@@ -371,7 +314,7 @@ static void build_overlay_bg(void)
     settings_register_secondary(s_overlay_bg_widget, secondary_clock);
     settings_register_clock(s_overlay_bg_widget);
 
-    /* The target itself isn't registered globally â€” consumer widgets
+    /* The target itself isn't registered globally — consumer widgets
      * pick it up via GfxAddWidgetDep, and the library walks visible
      * widgets' deps each tick. No consumer visible => bg doesn't tick. */
     s_overlay_bg_target = (GfxRenderTarget){
@@ -419,7 +362,7 @@ static void build_overlays(void)
      * reduced) so the two regions touch cleanly at y = BODY_TOP_Y +
      * BODY_H = 136. Same instance referenced from every demo screen.
      * Status fields (caps / conn / layer) update via the SDK push
-     * callback wired below â€” no per-frame polling. */
+     * callback wired below — no per-frame polling. */
     s_statusbar = NewStatusBar(
         .font = &font_fira_mono_14,
         .color = accent_color(),
@@ -430,7 +373,7 @@ static void build_overlays(void)
     settings_register_accent(s_statusbar, accent_statusbar);
     settings_register_bg(s_statusbar, bg_statusbar);
 
-    /* NavBar consolidates the upper bar â€” owns the breadcrumb and
+    /* NavBar consolidates the upper bar — owns the breadcrumb and
      * the battery badge as children, and paints its own hairline
      * separator along its bottom. From the library's perspective
      * NavBar is one widget; child dispatch happens internally. */

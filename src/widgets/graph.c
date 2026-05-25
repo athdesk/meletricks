@@ -20,7 +20,7 @@ void GfxGraphDraw(GfxRenderingTile *tile, GfxGraph *g)
 {
     if (!g || !g->data || g->data_count <= 0 || tile->box.w <= 1 || tile->box.h <= 1) return;
 
-    if (!g->skip_clear) GfxFillRect(tile->fb, tile->box.x, tile->box.y, tile->box.w, tile->box.h, g->bg_color);
+    if (!g->skip_clear) GfxFillTile(tile, g->bg_color);
 
     int dmin = g->data_min;
     int dmax = g->data_max;

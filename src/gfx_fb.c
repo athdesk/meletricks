@@ -1,5 +1,5 @@
-#include "gfx.h"
-#include "mem.h"     /* memcpy → AEABI ROM impl, much faster than u16 loops */
+#include "gfx_fb.h"
+#include "mem.h"
 
 // Performance: much faster than a u16 store loop
 static inline void fill_u32_burst(u32 *dst, u32 n, u32 v)
@@ -52,20 +52,25 @@ static void fill_color(u16 *p, u32 n_pixels, u16 c)
     if (n_pixels & 1u) p[n_pixels - 1] = c;
 }
 
+void GfxFillSpan(u16 *dst, int w, GfxColor c)
+{
+    fill_color(dst, (u32)w, c);
+}
+
 void GfxFbInit(GfxFb *fb, u16 *pixels, int w, int h)
 {
     fb->pixels  = pixels;
     fb->width   = (s16)w;
     fb->height  = (s16)h;
-    fb->clip_x0 = 0;
-    fb->clip_y0 = 0;
-    fb->clip_x1 = (s16)w;
-    fb->clip_y1 = (s16)h;
+    fb->clip.x0 = 0;
+    fb->clip.y0 = 0;
+    fb->clip.x1 = (s16)w;
+    fb->clip.y1 = (s16)h;
 }
 
 GfxClip GfxFbPushClip(GfxFb *fb, GfxBoundingBox box)
 {
-    GfxClip saved = { fb->clip_x0, fb->clip_y0, fb->clip_x1, fb->clip_y1 };
+    GfxClip saved = { fb->clip.x0, fb->clip.y0, fb->clip.x1, fb->clip.y1 };
     int x0 = box.x;
     int y0 = box.y;
     int x1 = box.x + box.w;
@@ -76,19 +81,19 @@ GfxClip GfxFbPushClip(GfxFb *fb, GfxBoundingBox box)
     if (y1 > saved.y1) y1 = saved.y1;
     if (x1 < x0) x1 = x0;
     if (y1 < y0) y1 = y0;
-    fb->clip_x0 = (s16)x0;
-    fb->clip_y0 = (s16)y0;
-    fb->clip_x1 = (s16)x1;
-    fb->clip_y1 = (s16)y1;
+    fb->clip.x0 = (s16)x0;
+    fb->clip.y0 = (s16)y0;
+    fb->clip.x1 = (s16)x1;
+    fb->clip.y1 = (s16)y1;
     return saved;
 }
 
 void GfxFbPopClip(GfxFb *fb, GfxClip saved)
 {
-    fb->clip_x0 = saved.x0;
-    fb->clip_y0 = saved.y0;
-    fb->clip_x1 = saved.x1;
-    fb->clip_y1 = saved.y1;
+    fb->clip.x0 = saved.x0;
+    fb->clip.y0 = saved.y0;
+    fb->clip.x1 = saved.x1;
+    fb->clip.y1 = saved.y1;
 }
 
 /* fb_clear ignores the clip on purpose — it's a full-panel reset that
@@ -104,11 +109,7 @@ void GfxBlitFb(GfxFb *fb, int x, int y, const GfxFb *src)
     int sx = 0, sy = 0;
     int w  = src->width;
     int h  = src->height;
-    if (x < fb->clip_x0) { sx = fb->clip_x0 - x; w -= sx; x = fb->clip_x0; }
-    if (y < fb->clip_y0) { sy = fb->clip_y0 - y; h -= sy; y = fb->clip_y0; }
-    if (x + w > fb->clip_x1) w = fb->clip_x1 - x;
-    if (y + h > fb->clip_y1) h = fb->clip_y1 - y;
-    if (w <= 0 || h <= 0) return;
+    if (!GfxFbClipRectSrc(fb, &x, &y, &w, &h, &sx, &sy)) return;
 
     u16       *dst_row = &fb->pixels [y * fb->width  + x];
     const u16 *src_row = &src->pixels[sy * src->width + sx];
@@ -122,19 +123,3 @@ void GfxBlitFb(GfxFb *fb, int x, int y, const GfxFb *src)
     }
 }
 
-void GfxFillRect(GfxFb *fb, int x, int y, int w, int h, GfxColor c)
-{
-    if (w <= 0 || h <= 0) return;
-    if (x < fb->clip_x0) { w -= fb->clip_x0 - x; x = fb->clip_x0; }
-    if (y < fb->clip_y0) { h -= fb->clip_y0 - y; y = fb->clip_y0; }
-    if (x + w > fb->clip_x1) w = fb->clip_x1 - x;
-    if (y + h > fb->clip_y1) h = fb->clip_y1 - y;
-    if (w <= 0 || h <= 0) return;
-
-    u16 *row   = &fb->pixels[y * fb->width + x];
-    int stride = fb->width;
-    while (h--) {
-        fill_color(row, (u32)w, c);
-        row += stride;
-    }
-}

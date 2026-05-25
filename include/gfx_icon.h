@@ -1,5 +1,5 @@
-#ifndef GFX_WIDGETS_ICON_H
-#define GFX_WIDGETS_ICON_H
+#ifndef GFX_ICON_H
+#define GFX_ICON_H
 #include "gfx.h"
 
 /* `h` here is the available height. It's meant as a hint.
@@ -68,4 +68,4 @@ void GfxIconTextStaticFill(char *buf, int size, void *data);
 #define NewGfxIconTextStatic(font_, str_) \
     NewGfxIconText((font_), GfxIconTextStaticFill, (void *)(str_))
 
-#endif /* GFX_WIDGETS_ICON_H */
+#endif /* GFX_ICON_H */

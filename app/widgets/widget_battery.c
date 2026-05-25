@@ -114,9 +114,7 @@ void BatteryBadgeBindCallback(GfxWidget *w)
 void BatteryBadgeDraw(GfxRenderingTile *tile, BatteryBadge *b)
 {
     if (!b || !b->font) return;
-    if (!b->skip_clear)
-        GfxFillRect(tile->fb, tile->box.x, tile->box.y,
-                    tile->box.w, tile->box.h, b->bg_color);
+    if (!b->skip_clear) GfxFillTile(tile, b->bg_color);
 
     /* Battery icon sits on the right side of the rect; text fills the
      * space to its left, right-aligned against the icon. */

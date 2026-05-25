@@ -2,15 +2,15 @@
 #define GFX_WIDGETS_MENU_LIST_H
 #include "gfx.h"
 
-/* -- Menu list ---- vertical scrolling list with selection + indicator
- * column. Mutates on user input — caller invokes Prev/Next/Activate
- * then GfxMarkDirty. */
-/* Menu items are typed via the discriminator below — only the matching
- * union member is meaningful. Add new item kinds (e.g. multi-select,
- * action button) by extending the enum + union, then handling in
- * GfxMenuListDraw / GfxMenuListAdjust / your menu_activate. */
+/* Menu list: vertical scrolling list.
+ * Drive it with the four command handlers (Up/Down/Enter/Back);
+ * call GfxMarkDirty after Up/Down.  Enter and Back handle their
+ * own dirty-marking internally.
+ * Menu items are typed via the discriminator below.
+ * Add new item kinds by extending the enum + union, then handling
+ * in GfxMenuListDraw / GfxMenuListEnter. */
 typedef enum {
-    GFX_MENU_LINK   = 0,    /* activate → caller navigates to .link.target */
+    GFX_MENU_LINK   = 0,    /* activate -> caller navigates to .link.target */
     GFX_MENU_TOGGLE = 1,    /* on/off, drawn as `Label: on|off`            */
     GFX_MENU_SLIDER = 2,    /* numeric, drawn as label + bar + value       */
     GFX_MENU_CHOICE = 3,    /* multi-option pick, drawn as label + option  */
@@ -79,22 +79,24 @@ typedef struct {
     u32                       hidden_mask;
 } GfxMenuList;
 
-void GfxMenuListDraw      (GfxRenderingTile *tile, GfxMenuList *m);
-void GfxMenuListSelectPrev(GfxMenuList *m);
-void GfxMenuListSelectNext(GfxMenuList *m);
+void GfxMenuListDraw(GfxRenderingTile *tile, GfxMenuList *m);
+
+/* Command handlers. Up/Down take GfxMenuList *; call GfxMarkDirty
+ * after. Enter/Back take GfxWidget * and mark dirty internally.
+ * GfxMenuListBack returns 1 if it consumed the event (exited edit
+ * mode), 0 if the caller should handle back-navigation. */
+void GfxMenuListUp   (GfxMenuList *m);
+void GfxMenuListDown (GfxMenuList *m);
+void GfxMenuListEnter(GfxWidget *w);
+int  GfxMenuListBack (GfxWidget *w);
 
 /* Hidden-item API. `idx` is the items[] index, not a visible-row
  * position. Hiding the currently selected row auto-moves selection to
  * the nearest visible row (next, then prev, then none). Marks the
  * widget dirty when called via GfxMenuListSetHidden so the caller
  * doesn't need to. GfxMenuListIsHidden is a const query helper.  */
-void GfxMenuListSetHidden (GfxWidget *w, int idx, int hidden);
-int  GfxMenuListIsHidden  (const GfxMenuList *m, int idx);
-
-/* Slider adjust: when `editing` is set and the selected item has
- * get_value/set_value, applies one `value_step` in `dir` (+1 / −1)
- * and clamps to [value_min, value_max]. */
-void GfxMenuListAdjust(GfxMenuList *m, int dir);
+void GfxMenuListSetHidden(GfxWidget *w, int idx, int hidden);
+int  GfxMenuListIsHidden (const GfxMenuList *m, int idx);
 
 #define NewGfxMenuList(...) \
     GfxNewWidget(sizeof(GfxMenuList), \

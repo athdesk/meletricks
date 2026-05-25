@@ -2,7 +2,7 @@
 #define GFX_WIDGETS_MARQUEE_H
 #include "gfx.h"
 
-/* -- Marquee ---- horizontally scrolling text. Tick advances the
+/* Marquee: horizontally scrolling text. Tick advances the
  * scroll phase using fr_millis(); fits-text case is static. */
 typedef struct {
     const GfxFont *font;

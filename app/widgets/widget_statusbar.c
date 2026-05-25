@@ -14,7 +14,7 @@ static void icon_caps(GfxFb *fb, int x, int y, int caps_on,
     int icon_w = 24;
     int icon_h = 24;
 
-    /* Two concentric non-rounded rects → 2-px outline. */
+    /* Two concentric non-rounded rects -> 2-px outline. */
     GfxDrawRect(fb, x,     y,     &(GfxRect){ .w = icon_w,     .h = icon_h,     .radius = 0, .color = c });
     GfxDrawRect(fb, x + 1, y + 1, &(GfxRect){ .w = icon_w - 2, .h = icon_h - 2, .radius = 0, .color = c });
 
@@ -35,7 +35,7 @@ static void icon_transport(GfxFb *fb, int x, int y, u8 connection_type, const Gf
     int icon_w = 64;
     int icon_h = 24;
 
-    /* Two concentric non-rounded rects → 2-px outline. */
+    /* Two concentric non-rounded rects -> 2-px outline. */
     GfxDrawRect(fb, x,     y,     &(GfxRect){ .w = icon_w,     .h = icon_h,     .radius = 0, .color = c });
     GfxDrawRect(fb, x + 1, y + 1, &(GfxRect){ .w = icon_w - 2, .h = icon_h - 2, .radius = 0, .color = c });
 
@@ -46,9 +46,9 @@ static void icon_transport(GfxFb *fb, int x, int y, u8 connection_type, const Gf
     switch (connection_type) {
     case KBD_CONN_WIRED:   buf = "USB";   break;
     case KBD_CONN_2_4_GHZ: buf = "2.4G";  break;
-    case KBD_CONN_BLE_1:   buf = "BLE1";  break;
-    case KBD_CONN_BLE_2:   buf = "BLE2";  break;
-    case KBD_CONN_BLE_3:   buf = "BLE3";  break;
+    case KBD_CONN_BT_1:   buf = "BT 1";  break;
+    case KBD_CONN_BT_2:   buf = "BT 2";  break;
+    case KBD_CONN_BT_3:   buf = "BT 3";  break;
     default:               buf = "N/A";   break;
     }
 
@@ -63,7 +63,7 @@ static void icon_layer(GfxFb *fb, int x, int y, u8 layer, const GfxFont *font, G
     int icon_w = 32;
     int icon_h = 24;
 
-    /* Two concentric non-rounded rects → 2-px outline. */
+    /* Two concentric non-rounded rects -> 2-px outline. */
     GfxDrawRect(fb, x,     y,     &(GfxRect){ .w = icon_w,     .h = icon_h,     .radius = 0, .color = c });
     GfxDrawRect(fb, x + 1, y + 1, &(GfxRect){ .w = icon_w - 2, .h = icon_h - 2, .radius = 0, .color = c });
 
@@ -168,12 +168,7 @@ void StatusBarDraw(GfxRenderingTile *tile, StatusBar *s)
     if (!s || !s->font) return;
 
     int wpm_x = tile->box.x + tile->box.w - 8 - WPM_ICON_W;
-    if (!s->skip_clear) {
-        /* Left cluster — caps + transport + layer */
-        GfxFillRect(tile->fb, tile->box.x, tile->box.y, 140, tile->box.h, s->bg_color);
-        /* Right cluster — WPM icon (4 px left gap + icon + 8 px right margin) */
-        GfxFillRect(tile->fb, wpm_x - 4, tile->box.y, WPM_ICON_W + 12, tile->box.h, s->bg_color);
-    }
+    if (!s->skip_clear) GfxFillTile(tile, s->bg_color);
 
     int cy     = tile->box.y + tile->box.h / 2 + 1;  /* +1 keeps text below the divider */
     int icon_y = cy - 12;                              /* tallest icons are ~24-26 px */
@@ -184,7 +179,7 @@ void StatusBarDraw(GfxRenderingTile *tile, StatusBar *s)
     x += 32;       /* icon_caps width 24 + 8 spacing */
 
     icon_transport(tile->fb, x, icon_y, s->conn, s->font, s->color_dim, s->bg_color);
-    x += 72;       /* transport icon up to 64 wide + 8 spacing */
+    x += 72;       /* transport icon up to 64 wide + `8 spacing */
 
     icon_layer(tile->fb, x, icon_y, s->layer, s->font,
                (s->layer - 1) ? s->color : s->color_dim, s->bg_color);

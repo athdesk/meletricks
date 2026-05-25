@@ -2,7 +2,6 @@
 #define GFX_WIDGETS_PROGRESS_H
 #include "gfx.h"
 
-/* -- Progress ---- BAR / BATTERY / GAUGE styles. */
 typedef enum {
     GFX_PROGRESS_BAR     = 0,
     GFX_PROGRESS_BATTERY = 1,

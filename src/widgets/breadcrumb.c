@@ -1,5 +1,3 @@
-/* breadcrumb — walks GfxCurrentScreen()->parent chain to build a label with screen names. */
-
 #include "gfx.h"
 
 #define BREADCRUMB_MAX_DEPTH 8
@@ -24,11 +22,7 @@ static void apply_fade(GfxFb *fb, int x, int y, int fade_w, int h, GfxColor bg)
 {
     if (fade_w <= 0 || h <= 0) return;
     int x0 = x, y0 = y, x1 = x + fade_w, y1 = y + h;
-    if (x0 < fb->clip_x0) x0 = fb->clip_x0;
-    if (y0 < fb->clip_y0) y0 = fb->clip_y0;
-    if (x1 > fb->clip_x1) x1 = fb->clip_x1;
-    if (y1 > fb->clip_y1) y1 = fb->clip_y1;
-    if (x1 <= x0 || y1 <= y0) return;
+    if (!GfxFbClipBox(fb, &x0, &y0, &x1, &y1)) return;
 
     for (int col = x0; col < x1; col++) {
         u32 a = (u32)(col - x + 1) * 255u / (u32)fade_w;

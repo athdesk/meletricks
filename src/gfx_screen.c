@@ -7,7 +7,7 @@
 
 #include "gfx.h"
 #include "gfx_screen.h"
-#include "zoomtkldyna.h"     /* m_draw_frame, lcd_is_idle */
+#include "firmware.h"        /* m_draw_frame, lcd_is_idle */
 #include "timer.h"           /* fr_millis */
 #include <string.h>
 
@@ -182,7 +182,7 @@ void GfxTick(void)
     for (int i = 0; i < s->slot_count; i++) {
         GfxWidget *w = s->slots[i].widget;
         if (!w) continue;
-        if ((w->tick && w->tick(w->data) || screen_changed) || w->dirty) {
+        if (((w->tick && w->tick(w->data)) || screen_changed) || w->dirty) {
             w->dirty = true;
             any_dirty = true;
         }

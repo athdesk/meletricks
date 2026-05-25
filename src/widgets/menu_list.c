@@ -39,14 +39,14 @@ static int prev_visible(const GfxMenuList *m, int from)
     return -1;
 }
 
-void GfxMenuListSelectPrev(GfxMenuList *m)
+static void select_prev(GfxMenuList *m)
 {
     if (!m || m->item_count <= 0) return;
     int n = prev_visible(m, m->selected);
     if (n >= 0) m->selected = n;
 }
 
-void GfxMenuListSelectNext(GfxMenuList *m)
+static void select_next(GfxMenuList *m)
 {
     if (!m || m->item_count <= 0) return;
     int n = next_visible(m, m->selected);
@@ -73,7 +73,7 @@ void GfxMenuListSetHidden(GfxWidget *w, int idx, int hidden)
     GfxMarkDirty(w);
 }
 
-void GfxMenuListAdjust(GfxMenuList *m, int dir)
+static void adjust(GfxMenuList *m, int dir)
 {
     if (!m || !m->editing || m->item_count <= 0) return;
     if (m->selected < 0 || m->selected >= m->item_count) return;
@@ -97,6 +97,68 @@ void GfxMenuListAdjust(GfxMenuList *m, int dir)
     }
 }
 
+/* -- Command handlers -------------------------------------------- */
+
+void GfxMenuListUp(GfxMenuList *m)
+{
+    if (!m) return;
+    if (m->editing) adjust(m, -1);
+    else            select_prev(m);
+}
+
+void GfxMenuListDown(GfxMenuList *m)
+{
+    if (!m) return;
+    if (m->editing) adjust(m, +1);
+    else            select_next(m);
+}
+
+void GfxMenuListEnter(GfxWidget *w)
+{
+    if (!w) return;
+    GfxMenuList *m = w->data;
+    if (!m || m->item_count <= 0) return;
+    if (m->selected < 0 || m->selected >= m->item_count) return;
+    const GfxMenuItem *it = &m->items[m->selected];
+
+    if (m->editing) {
+        m->editing = 0;
+        GfxMarkDirty(w);
+        return;
+    }
+    switch (it->type) {
+    case GFX_MENU_SLIDER:
+    case GFX_MENU_CHOICE:
+        m->editing = 1;
+        GfxMarkDirty(w);
+        break;
+    case GFX_MENU_TOGGLE:
+        if (it->toggle.get && it->toggle.set) {
+            it->toggle.set(!it->toggle.get());
+            GfxMarkDirty(w);
+        }
+        break;
+    case GFX_MENU_LINK:
+        if (it->link.target) GfxNavTo((GfxScreen *)it->link.target);
+        break;
+    case GFX_MENU_ACTION:
+        if (it->action.activate) it->action.activate();
+        break;
+    }
+}
+
+/* Returns 1 if it consumed the event (was in edit mode, now exited),
+ * 0 if the caller should handle back-navigation (e.g. GfxNavBack). */
+int GfxMenuListBack(GfxWidget *w)
+{
+    if (!w) return 0;
+    GfxMenuList *m = w->data;
+    if (!m || !m->editing) return 0;
+    m->editing = 0;
+    GfxMarkDirty(w);
+    return 1;
+}
+
 static int format_int(char *buf, int v)
 {
     int n = 0;
@@ -117,7 +179,7 @@ static int visible_count(const GfxMenuList *m)
     return n;
 }
 
-/* Map an items[] index → its position among visible items, or -1 if
+/* Map an items[] index -> its position among visible items, or -1 if
  * the item itself is hidden. Indicator dots use this so the selected
  * dot tracks the visible row, not the raw items[] slot. */
 static int visible_pos_of(const GfxMenuList *m, int idx)
@@ -188,7 +250,7 @@ void GfxMenuListDraw(GfxRenderingTile *tile, GfxMenuList *m)
 {
     if (!m || !m->font || m->item_count <= 0) return;
 
-    if (!m->skip_clear) GfxFillRect(tile->fb, tile->box.x, tile->box.y, tile->box.w, tile->box.h, m->bg_color);
+    if (!m->skip_clear) GfxFillTile(tile, m->bg_color);
 
     int line_h    = m->font->line_height;
     int per_item  = line_h + m->item_spacing;
