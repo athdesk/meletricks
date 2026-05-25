@@ -7,7 +7,7 @@ u32 fr_micros(void)
 {
     fr_time_t t;
     rwip_time_get(&t);
-    return t.hs * 312 + t.hus / 2;
+    return (u32)(((u64)t.hs * 625u + t.hus) / 2u);
 }
 
 void fr_delay_us(u32 us)
