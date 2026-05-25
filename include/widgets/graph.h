@@ -28,4 +28,6 @@ void GfxGraphDraw(GfxRenderingTile *tile, GfxGraph *g);
                  GFX_DRAW_FN(GfxGraphDraw), \
                  NULL)
 
+GFX_DEFINE_APPLIER(GfxGraph, LegendColor)
+
 #endif

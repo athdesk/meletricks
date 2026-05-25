@@ -20,7 +20,8 @@ void GfxArc (GfxFb *fb, int cx, int cy, int r,
  * Walk the same rasterisation path as GfxLine / filled GfxDrawCircle
  * but copy pixels from `src` instead of writing a constant colour.
  * (src_origin_x, src_origin_y) is the fb coordinate where src's (0,0)
- * pixel lives.  Pixels outside src are left untouched. */
+ * pixel lives.  Pixels outside src are left untouched. 
+ * src must be != fb */
 void GfxRestoreLine        (GfxFb *fb, int x0, int y0, int x1, int y1,
                             const GfxFb *src, int src_origin_x, int src_origin_y);
 void GfxRestoreCircleFilled(GfxFb *fb, int cx, int cy, int radius,

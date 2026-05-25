@@ -38,5 +38,6 @@ void NavBarAddChild(GfxWidget *navbar_w, GfxWidget *child, GfxBoundingBox box);
                  GFX_DRAW_FN(NavBarDraw), GFX_TICK_FN(NavBarTick))
 
 GFX_DEFINE_APPLIER(NavBar, BgColor)
+GFX_DEFINE_APPLIER(NavBar, SeparatorColor)
 
 #endif

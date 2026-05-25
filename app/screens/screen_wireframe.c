@@ -36,12 +36,6 @@ static void wireframe_size_set(int v)
     }
 }
 
-static void apply_bg_target(GfxWidget *w, const GfxRenderTarget *t)
-{
-    ((WireframeDemo *)w->data)->bg = t;
-    GfxMarkDirty(w);
-}
-
 static const GfxMenuItem WIREFRAME_SETTINGS_ITEMS[] = {
     { "Shape", GFX_MENU_CHOICE,
       .choice = { WIREFRAME_SHAPE_LABELS, WIREFRAME_SHAPE_COUNT,
@@ -54,24 +48,19 @@ static const GfxMenuItem WIREFRAME_SETTINGS_ITEMS[] = {
 #define WIREFRAME_SETTINGS_COUNT \
     ((int)(sizeof(WIREFRAME_SETTINGS_ITEMS)/sizeof(WIREFRAME_SETTINGS_ITEMS[0])))
 
-static void accent_wireframe(GfxWidget *w, GfxColor c)
-{ ((WireframeDemo *)w->data)->color = c;    GfxMarkDirty(w); }
-
-static void bg_wireframe(GfxWidget *w, GfxColor c)
-{ ((WireframeDemo *)w->data)->bg_color = c; GfxMarkDirty(w); }
 
 void build_wireframe(void)
 {
     GfxWidget *body = NewWireframeDemo(
-        .color = accent_color(), .bg_color = bg_color_value(),
+        .Color = accent_color(), .BgColor = bg_color_value(),
         .bg       = &s_overlay_bg_target,
         .shape    = &WIREFRAME_SHAPES[wireframe_shape_get()],
         .size_pct = wireframe_size_get(),
     );
     GfxAddWidgetDep(body, &s_overlay_bg_target);
-    settings_register_accent(body, accent_wireframe);
-    settings_register_bg(body, bg_wireframe);
-    settings_register_bg_consumer(body, apply_bg_target);
+    settings_register_accent(body, GFX_APPLIER_FN(WireframeDemo, Color));
+    settings_register_bg(body, GFX_APPLIER_FN(WireframeDemo, BgColor));
+    settings_register_bg_consumer(body, GFX_APPLIER_FN(WireframeDemo, bg));
     s_wireframe_body = body;
 
     s_wireframe_slots[0] = (GfxWidgetSlot){ body,         EXPANDED_BODY_SLOT };

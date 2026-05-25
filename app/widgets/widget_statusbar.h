@@ -42,6 +42,7 @@ void StatusBarBindCallbacks(GfxWidget *w);
                  GFX_DRAW_FN(StatusBarDraw), GFX_TICK_FN(StatusBarTick))
 
 GFX_DEFINE_APPLIER(StatusBar, Color)
+GFX_DEFINE_APPLIER(StatusBar, ColorDim)
 GFX_DEFINE_APPLIER(StatusBar, BgColor)
 
 #endif

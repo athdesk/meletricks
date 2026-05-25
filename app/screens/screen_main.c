@@ -35,12 +35,6 @@ static void on_carousel_select(GfxCarouselItem *item)
         GfxNavTo(s_carousel_screens[idx]);
 }
 
-static void bg_carousel(GfxWidget *w, GfxColor c)
-{ ((GfxCarousel *)w->data)->BgColor = c; GfxMarkDirty(w); }
-
-static void font_carousel(GfxWidget *w, const GfxFont *f)
-{ ((GfxCarousel *)w->data)->Font = f; GfxMarkDirty(w); }
-
 void build_main(void)
 {
     s_main_carousel = NewGfxCarousel(
@@ -53,8 +47,8 @@ void build_main(void)
         .on_select = on_carousel_select,
         .anim_speed = 18,
     );
-    settings_register_bg(s_main_carousel, bg_carousel);
-    settings_register_carousel_font(s_main_carousel, font_carousel);
+    settings_register_bg(s_main_carousel, GFX_APPLIER_FN(GfxCarousel, BgColor));
+    settings_register_carousel_font(s_main_carousel, GFX_APPLIER_FN(GfxCarousel, Font));
     s_main_slots[0] = (GfxWidgetSlot){ s_main_carousel, CAROUSEL_SLOT };
     s_main_slots[1] = (GfxWidgetSlot){ s_statusbar,     STATUSBAR_SLOT };
     s_main_slots[2] = (GfxWidgetSlot){ s_navbar,        NAVBAR_SLOT };

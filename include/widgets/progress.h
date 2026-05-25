@@ -31,4 +31,8 @@ void GfxProgressDraw(GfxRenderingTile *tile, GfxProgress *p);
                  GFX_DRAW_FN(GfxProgressDraw), \
                  NULL)
 
+GFX_DEFINE_APPLIER(GfxProgress, Color)
+GFX_DEFINE_APPLIER(GfxProgress, BgColor)
+GFX_DEFINE_APPLIER(GfxProgress, BorderColor)
+
 #endif

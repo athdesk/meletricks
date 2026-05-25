@@ -31,7 +31,7 @@ void AnimDemoDraw(GfxRenderingTile *tile, AnimDemo *a)
                           tile->box.x + a->prev_x[i],
                           tile->box.y + a->prev_y[i],
                           &(GfxCircle){
-                              .radius = radius, .fill = 1, .color = a->bg_color,
+                              .radius = radius, .fill = 1, .color = a->BgColor,
                           });
         }
     }
@@ -40,7 +40,7 @@ void AnimDemoDraw(GfxRenderingTile *tile, AnimDemo *a)
                       tile->box.x + a->trail_x[i],
                       tile->box.y + a->trail_y[i],
                       &(GfxCircle){
-                          .radius = 2 + i, .fill = 1, .color = a->color,
+                          .radius = 2 + i, .fill = 1, .color = a->Color,
                       });
         a->prev_x[i] = a->trail_x[i];
         a->prev_y[i] = a->trail_y[i];

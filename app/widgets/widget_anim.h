@@ -7,8 +7,8 @@
 
 typedef struct {
     int          w, h;
-    GfxColor     color;
-    GfxColor     bg_color;
+    GfxColor     Color;
+    GfxColor     BgColor;
     /* Optional overlay background. If set, prev-frame trail erases
      * sample from bg->fb instead of writing bg_color, so the trail
      * appears to float over whatever the bg was painted with. The
@@ -35,5 +35,9 @@ int  AnimDemoTick(AnimDemo *a);
 #define NewAnimDemo(...) \
     GfxNewWidget(sizeof(AnimDemo), &(AnimDemo){ __VA_ARGS__ }, \
                  GFX_DRAW_FN(AnimDemoDraw), GFX_TICK_FN(AnimDemoTick))
+
+GFX_DEFINE_APPLIER(AnimDemo, Color)
+GFX_DEFINE_APPLIER(AnimDemo, BgColor)
+GFX_DEFINE_APPLIER(AnimDemo, bg)
 
 #endif

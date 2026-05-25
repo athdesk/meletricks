@@ -36,4 +36,7 @@ void GfxCarouselSelect(GfxCarousel *c);
                  GFX_DRAW_FN(GfxCarouselDraw), \
                  GFX_TICK_FN(GfxCarouselTick))
 
+GFX_DEFINE_APPLIER(GfxCarousel, BgColor)
+GFX_DEFINE_APPLIER(GfxCarousel, Font)
+
 #endif /* GFX_WIDGETS_CAROUSEL_H */

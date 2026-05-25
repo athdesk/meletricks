@@ -283,13 +283,13 @@ void WireframeDemoDraw(GfxRenderingTile *tile, WireframeDemo *a)
             } else {
                 GfxLine(tile->fb,
                         a->prev_px[p], a->prev_py[p],
-                        a->prev_px[q], a->prev_py[q], a->bg_color);
+                        a->prev_px[q], a->prev_py[q], a->BgColor);
             }
         }
     }
     for (int i = 0; i < s->edge_count; i++) {
         int p = s->edges[i][0], q = s->edges[i][1];
-        GfxLine(tile->fb, px[p], py[p], px[q], py[q], a->color);
+        GfxLine(tile->fb, px[p], py[p], px[q], py[q], a->Color);
     }
     for (int i = 0; i < s->vert_count; i++) {
         a->prev_px[i] = px[i];

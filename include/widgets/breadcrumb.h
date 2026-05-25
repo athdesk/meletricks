@@ -20,6 +20,7 @@ void GfxBreadcrumbDraw(GfxRenderingTile *tile, GfxBreadcrumb *bc);
                  GFX_DRAW_FN(GfxBreadcrumbDraw), \
                  NULL)
 
+GFX_DEFINE_APPLIER(GfxBreadcrumb, Color)
 GFX_DEFINE_APPLIER(GfxBreadcrumb, BgColor)
 GFX_DEFINE_APPLIER(GfxBreadcrumb, Font)
 
