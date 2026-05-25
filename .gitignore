@@ -137,3 +137,5 @@ htmlcov/
 
 build
 build_emu
+meletricks*.bin
+meletricks*.elf
