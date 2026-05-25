@@ -20,7 +20,7 @@ void GfxGraphDraw(GfxRenderingTile *tile, GfxGraph *g)
 {
     if (!g || !g->data || g->data_count <= 0 || tile->box.w <= 1 || tile->box.h <= 1) return;
 
-    if (!g->skip_clear) GfxFillRect(tile->fb, tile->box.x, tile->box.y, tile->box.w, tile->box.h, g->bg_color);
+    if (!g->skip_clear) GfxFillTile(tile, g->BgColor);
 
     int dmin = g->data_min;
     int dmax = g->data_max;
@@ -58,7 +58,7 @@ void GfxGraphDraw(GfxRenderingTile *tile, GfxGraph *g)
                 lx += gap;
                 lw -= gap;
             }
-            if (lw > 0) GfxHLine(tile->fb, lx, py, lw, g->legend_color);
+            if (lw > 0) GfxHLine(tile->fb, lx, py, lw, g->LegendColor);
         }
     }
 
@@ -74,7 +74,7 @@ void GfxGraphDraw(GfxRenderingTile *tile, GfxGraph *g)
 
         if (i > 0) {
             for (int dy = -line_half; dy < line_w - line_half; dy++) {
-                GfxLine(tile->fb, prev_px, prev_py + dy, px, py + dy, g->color);
+                GfxLine(tile->fb, prev_px, prev_py + dy, px, py + dy, g->Color);
             }
         }
         prev_px = px;
@@ -94,7 +94,7 @@ void GfxGraphDraw(GfxRenderingTile *tile, GfxGraph *g)
             int text_y = (li == 1) ? py - lh / 2 : py - lh;
             if (text_y < tile->box.y) text_y = tile->box.y;
             GfxDrawTextBg(tile->fb, g->legend_font, tile->box.x, text_y, buf,
-                          g->legend_color, g->bg_color);
+                          g->LegendColor, g->BgColor);
         }
     }
 

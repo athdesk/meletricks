@@ -12,7 +12,13 @@ typedef signed int          s32;
 typedef signed long long    s64;
 
 typedef unsigned int        uint;
-typedef int                 bool;
+#ifndef __cplusplus
+#ifndef __bool_true_false_are_defined  /* <stdbool.h> not included */
+#if !defined(__STDC_VERSION__) || __STDC_VERSION__ < 202311L  /* not C23+ */
+typedef u8                  bool;
+#endif
+#endif
+#endif
 
 #ifndef NULL
 #define NULL ((void *)0)

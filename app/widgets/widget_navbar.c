@@ -27,9 +27,7 @@ int NavBarTick(NavBar *nb)
 void NavBarDraw(GfxRenderingTile *tile, NavBar *nb)
 {
     if (!nb) return;
-    if (!nb->skip_clear)
-        GfxFillRect(tile->fb, tile->box.x, tile->box.y,
-                    tile->box.w, tile->box.h, nb->bg_color);
+    if (!nb->skip_clear) GfxFillTile(tile, nb->BgColor);
 
     /* Dispatch children. Always paints each child on a NavBar redraw,
      * since the library can only see NavBar's dirty flag and a single
@@ -49,5 +47,5 @@ void NavBarDraw(GfxRenderingTile *tile, NavBar *nb)
      * match the existing top-separator placement. */
     GfxHLine(tile->fb,
              tile->box.x + 6, tile->box.y + tile->box.h - 1,
-             tile->box.w - 12, nb->separator_color);
+             tile->box.w - 12, nb->SeparatorColor);
 }

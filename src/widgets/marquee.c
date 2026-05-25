@@ -1,5 +1,3 @@
-/* marquee — horizontally scrolling text. */
-
 #include "gfx.h"
 #include "timer.h"
 
@@ -11,8 +9,8 @@ static int cycle_len_px(const GfxMarquee *m, int text_w, int box_w)
 
 int GfxMarqueeTick(GfxMarquee *m)
 {
-    if (!m || !m->text || !m->font) return 0;
-    int text_w = GfxTextWidth(m->font, m->text);
+    if (!m || !m->text || !m->Font) return 0;
+    int text_w = GfxTextWidth(m->Font, m->text);
 
     u32 now = fr_millis();
     if (m->last_tick_ms == 0) { m->last_tick_ms = now; return 0; }
@@ -31,15 +29,15 @@ int GfxMarqueeTick(GfxMarquee *m)
 
 void GfxMarqueeDraw(GfxRenderingTile *tile, GfxMarquee *m)
 {
-    if (!m || !m->font || !m->text || tile->box.w <= 0) return;
-    int h = (tile->box.h > 0) ? tile->box.h : m->font->line_height;
+    if (!m || !m->Font || !m->text || tile->box.w <= 0) return;
+    int h = (tile->box.h > 0) ? tile->box.h : m->Font->line_height;
 
-    if (!m->skip_clear) GfxFillRect(tile->fb, tile->box.x, tile->box.y, tile->box.w, h, m->bg_color);
+    if (!m->skip_clear) GfxFillRect(tile->fb, tile->box.x, tile->box.y, tile->box.w, h, m->BgColor);
 
-    int text_w = GfxTextWidth(m->font, m->text);
+    int text_w = GfxTextWidth(m->Font, m->text);
     if (text_w <= tile->box.w) {
         int px = tile->box.x + (tile->box.w - text_w) / 2;
-        GfxDrawTextBg(tile->fb, m->font, px, tile->box.y, m->text, m->color, m->bg_color);
+        GfxDrawTextBg(tile->fb, m->Font, px, tile->box.y, m->text, m->Color, m->BgColor);
         return;
     }
 
@@ -53,7 +51,7 @@ void GfxMarqueeDraw(GfxRenderingTile *tile, GfxMarquee *m)
      * primary's role at the wrap point — that gives unbroken motion
      * across `(phase + adv) % cyc`. */
     GfxClip saved = GfxFbPushClip(tile->fb, (GfxBoundingBox){tile->box.x, tile->box.y, tile->box.w, h});
-    GfxDrawTextBg(tile->fb, m->font, pen_x,       tile->box.y, m->text, m->color, m->bg_color);
-    GfxDrawTextBg(tile->fb, m->font, pen_x - cyc, tile->box.y, m->text, m->color, m->bg_color);
+    GfxDrawTextBg(tile->fb, m->Font, pen_x,       tile->box.y, m->text, m->Color, m->BgColor);
+    GfxDrawTextBg(tile->fb, m->Font, pen_x - cyc, tile->box.y, m->text, m->Color, m->BgColor);
     GfxFbPopClip(tile->fb, saved);
 }

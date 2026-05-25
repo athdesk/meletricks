@@ -35,26 +35,20 @@ static void on_carousel_select(GfxCarouselItem *item)
         GfxNavTo(s_carousel_screens[idx]);
 }
 
-static void bg_carousel(GfxWidget *w, GfxColor c)
-{ ((GfxCarousel *)w->data)->bg_color = c; GfxMarkDirty(w); }
-
-static void font_carousel(GfxWidget *w, const GfxFont *f)
-{ ((GfxCarousel *)w->data)->font = f; GfxMarkDirty(w); }
-
 void build_main(void)
 {
     s_main_carousel = NewGfxCarousel(
         .w = LCD_W, .h = BODY_H,
-        .font      = &font_lora_24,
-        .color     = GFX_WHITE,
-        .bg_color  = bg_color_value(),
+        .Font      = &font_lora_24,
+        .Color     = GFX_WHITE,
+        .BgColor  = bg_color_value(),
         .items     = CAROUSEL_ITEMS,
         .item_count = CAROUSEL_COUNT,
         .on_select = on_carousel_select,
         .anim_speed = 18,
     );
-    settings_register_bg(s_main_carousel, bg_carousel);
-    settings_register_carousel_font(s_main_carousel, font_carousel);
+    settings_register_bg(s_main_carousel, GFX_APPLIER_FN(GfxCarousel, BgColor));
+    settings_register_carousel_font(s_main_carousel, GFX_APPLIER_FN(GfxCarousel, Font));
     s_main_slots[0] = (GfxWidgetSlot){ s_main_carousel, CAROUSEL_SLOT };
     s_main_slots[1] = (GfxWidgetSlot){ s_statusbar,     STATUSBAR_SLOT };
     s_main_slots[2] = (GfxWidgetSlot){ s_navbar,        NAVBAR_SLOT };

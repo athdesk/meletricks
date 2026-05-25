@@ -1,11 +1,9 @@
-/* Shared layout constants, font externs, and the current-accent
- * accessor that lets widgets pick up the foreground colour without
- * pulling in the settings module. */
-#ifndef HELLO_COMMON_H
-#define HELLO_COMMON_H
+#ifndef COMMON_H
+#define COMMON_H
 
 #include "zoomtkldyna.h"
 #include "entry.h"
+#include "firmware.h"
 #include "kbd_event.h"
 #include "timer.h"
 #include "fr8000.h"
@@ -19,19 +17,13 @@
 #define BODY_TOP_Y    42
 #define BODY_H        (LCD_H - 78)
 
-/* Header strip: breadcrumb on the left fills the bar, battery widget
- * pinned in the right corner. WPM + FPS live down in the statusbar
- * now (see STATUSBAR_* below). */
 #define HEADER_BC_X     14
 #define HEADER_BC_W     212
 #define HEADER_BATT_X   232
 #define HEADER_BATT_W   74
 
 
-/* Wireframe and Bounce extend almost the full available vertical
- * range — overlay-bg-backed demos look better at the larger size,
- * and they don't run into Life-style cell-grid math that depends
- * on BODY_H. */
+// We use these for Wireframe and Bounce to get less padding
 #define EXPANDED_BODY_TOP_Y 30
 #define EXPANDED_BODY_H     104
 

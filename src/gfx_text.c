@@ -2,7 +2,7 @@
 
 const GfxGlyph *GfxFontLookup(const GfxFont *f, u8 cp)
 {
-    if (cp < f->first_cp || cp > f->last_cp) return NULL;
+    if (!f || cp < f->first_cp || cp > f->last_cp) return NULL;
     u8 slot = f->index[cp - f->first_cp];
     if (slot == GFX_GLYPH_ABSENT) return NULL;
     return &f->glyphs[slot];
@@ -11,6 +11,7 @@ const GfxGlyph *GfxFontLookup(const GfxFont *f, u8 cp)
 int GfxDrawChar(GfxFb *fb, const GfxFont *f,
                   int x, int y, u8 cp, GfxColor color)
 {
+    if (!f) return x;
     const GfxGlyph *g = GfxFontLookup(f, cp);
     if (!g) return x + f->default_advance;
 
@@ -39,6 +40,7 @@ int GfxDrawChar(GfxFb *fb, const GfxFont *f,
 int GfxDrawText(GfxFb *fb, const GfxFont *f,
                   int x, int y, const char *s, GfxColor color)
 {
+    if (!f || !s) return x;
     while (*s) {
         x = GfxDrawChar(fb, f, x, y, (u8)*s++, color);
     }
@@ -48,6 +50,7 @@ int GfxDrawText(GfxFb *fb, const GfxFont *f,
 int GfxDrawCharBg(GfxFb *fb, const GfxFont *f,
                   int x, int y, u8 cp, GfxColor fg, GfxColor bg)
 {
+    if (!f) return x;
     const GfxGlyph *g = GfxFontLookup(f, cp);
     if (!g) return x + f->default_advance;
 
@@ -77,6 +80,7 @@ int GfxDrawCharBg(GfxFb *fb, const GfxFont *f,
 int GfxDrawTextBg(GfxFb *fb, const GfxFont *f,
                   int x, int y, const char *s, GfxColor fg, GfxColor bg)
 {
+    if (!f || !s) return x;
     while (*s) {
         x = GfxDrawCharBg(fb, f, x, y, (u8)*s++, fg, bg);
     }
@@ -85,6 +89,7 @@ int GfxDrawTextBg(GfxFb *fb, const GfxFont *f,
 
 int GfxTextWidth(const GfxFont *f, const char *s)
 {
+    if (!f || !s) return 0;
     int w = 0;
     while (*s) {
         const GfxGlyph *g = GfxFontLookup(f, (u8)*s++);
@@ -160,17 +165,17 @@ static line_info_t find_next_line(const GfxFont *f, const char *s, int box_w)
  * respects '\n' as a forced line break. Fills with bg_color first when set. */
 void GfxTextboxDraw(GfxRenderingTile *tile, GfxTextbox *tb)
 {
-    if (!tb || !tb->text || !tb->font || tile->box.w <= 0) return;
+    if (!tb || !tb->text || !tb->Font || tile->box.w <= 0) return;
 
-    int line_h = tb->font->line_height;
+    int line_h = tb->Font->line_height;
     if (line_h <= 0) return;
 
-    if (!tb->skip_clear) GfxFillRect(tile->fb, tile->box.x, tile->box.y, tile->box.w, tile->box.h, tb->bg_color);
+    if (!tb->skip_clear) GfxFillRect(tile->fb, tile->box.x, tile->box.y, tile->box.w, tile->box.h, tb->BgColor);
 
     int n_lines = 0;
     const char *p = tb->text;
     while (*p) {
-        line_info_t info = find_next_line(tb->font, p, tile->box.w);
+        line_info_t info = find_next_line(tb->Font, p, tile->box.w);
         n_lines++;
         p = info.next;
     }
@@ -202,13 +207,13 @@ void GfxTextboxDraw(GfxRenderingTile *tile, GfxTextbox *tb)
 
     p = tb->text;
     for (int i = 0; i < skip_lines && *p; i++) {
-        line_info_t info = find_next_line(tb->font, p, tile->box.w);
+        line_info_t info = find_next_line(tb->Font, p, tile->box.w);
         p = info.next;
     }
 
     int line_y = y_top;
     for (int i = 0; i < render_lines && *p; i++) {
-        line_info_t info = find_next_line(tb->font, p, tile->box.w);
+        line_info_t info = find_next_line(tb->Font, p, tile->box.w);
 
         int line_x;
         switch (tb->halign) {
@@ -219,8 +224,8 @@ void GfxTextboxDraw(GfxRenderingTile *tile, GfxTextbox *tb)
         }
 
         for (const char *q = p; q < info.end; q++) {
-            line_x = GfxDrawCharBg(tile->fb, tb->font, line_x, line_y, (u8)*q,
-                                   tb->color, tb->bg_color);
+            line_x = GfxDrawCharBg(tile->fb, tb->Font, line_x, line_y, (u8)*q,
+                                   tb->Color, tb->BgColor);
         }
         p = info.next;
         line_y += line_h;

@@ -30,7 +30,7 @@ static const u8 TETRA_E[6][2] = {
 };
 
 /* Regular octahedron: 6 verts on the principal axes. Each axis vert
- * links to the 4 perpendicular axis verts → 12 edges. */
+ * links to the 4 perpendicular axis verts -> 12 edges. */
 static const s16 OCTA_V[6][3] = {
     {  4096,     0,     0 },   /* +X */
     { -4096,     0,     0 },   /* -X */
@@ -74,7 +74,7 @@ static const u8 PRISM_E[9][2] = {
 };
 
 /* Hexagonal prism: 12 verts (6 top, 6 bottom), 18 edges (12 around
- * + 6 vertical). sin(60°)≈0.866 → 3547 in Q12 with unit 4096. */
+ * + 6 vertical). sin(60°)≈0.866 -> 3547 in Q12 with unit 4096. */
 static const s16 HEX_V[12][3] = {
     /* top hex (y = +4096) */
     {  4096,  4096,     0 },     /* 0 */
@@ -154,7 +154,7 @@ static const s16 DODECA_V[20][3] = {
     { -4096,     0, -1564 },     /*19  D -β0-α  */
 };
 static const u8 DODECA_E[30][2] = {
-    /* Each cube corner → one A, one B, one D. */
+    /* Each cube corner -> one A, one B, one D. */
     { 0, 8},{ 0,12},{ 0,16},
     { 1, 9},{ 1,12},{ 1,17},
     { 2,10},{ 2,13},{ 2,16},
@@ -283,13 +283,13 @@ void WireframeDemoDraw(GfxRenderingTile *tile, WireframeDemo *a)
             } else {
                 GfxLine(tile->fb,
                         a->prev_px[p], a->prev_py[p],
-                        a->prev_px[q], a->prev_py[q], a->bg_color);
+                        a->prev_px[q], a->prev_py[q], a->BgColor);
             }
         }
     }
     for (int i = 0; i < s->edge_count; i++) {
         int p = s->edges[i][0], q = s->edges[i][1];
-        GfxLine(tile->fb, px[p], py[p], px[q], py[q], a->color);
+        GfxLine(tile->fb, px[p], py[p], px[q], py[q], a->Color);
     }
     for (int i = 0; i < s->vert_count; i++) {
         a->prev_px[i] = px[i];

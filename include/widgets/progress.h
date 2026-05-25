@@ -1,8 +1,7 @@
 #ifndef GFX_WIDGETS_PROGRESS_H
 #define GFX_WIDGETS_PROGRESS_H
-#include "gfx.h"
+#include "gfx_widgets.h"
 
-/* -- Progress ---- BAR / BATTERY / GAUGE styles. */
 typedef enum {
     GFX_PROGRESS_BAR     = 0,
     GFX_PROGRESS_BATTERY = 1,
@@ -10,9 +9,9 @@ typedef enum {
 } GfxProgressStyle;
 
 typedef struct {
-    GfxColor         color;
-    GfxColor         bg_color;
-    GfxColor         border_color;
+    GfxColor         Color;
+    GfxColor         BgColor;
+    GfxColor         BorderColor;
     bool             show_border;
     int              value;
     int              max;
@@ -31,5 +30,9 @@ void GfxProgressDraw(GfxRenderingTile *tile, GfxProgress *p);
                  &(GfxProgress){ __VA_ARGS__ }, \
                  GFX_DRAW_FN(GfxProgressDraw), \
                  NULL)
+
+GFX_DEFINE_APPLIER(GfxProgress, Color)
+GFX_DEFINE_APPLIER(GfxProgress, BgColor)
+GFX_DEFINE_APPLIER(GfxProgress, BorderColor)
 
 #endif

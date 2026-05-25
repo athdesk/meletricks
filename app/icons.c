@@ -123,14 +123,10 @@ void icon_clock(GfxFb *fb, int x, int y, int h, GfxColor fg, GfxColor bg, void *
     (void)bg; (void)data;
     int cx = x + h / 2;
     int cy = y + h / 2;
-    int r  = h * 9 / 20;   /* face radius — 5% margin each side */
+    int r  = h * 9 / 20;
 
     GfxDrawCircle(fb, cx, cy, &(GfxCircle){ .radius = r, .color = fg });
 
-    /* 10:10 pose. Angles measured clockwise from 12 o'clock.
-     * Screen coords: Δx = r·sin(θ), Δy = -r·cos(θ).
-     * Minute hand: 60°  → sin=866/1000, cos=500/1000  (→ upper-right)
-     * Hour hand:  305°  → sin=-819/1000, cos=574/1000 (→ upper-left)  */
     int mr = r * 80 / 100;
     int hr = r * 55 / 100;
     GfxLine(fb, cx, cy, cx +  866*mr/1000, cy - 500*mr/1000, fg);

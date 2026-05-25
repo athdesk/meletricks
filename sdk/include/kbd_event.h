@@ -16,8 +16,8 @@
  * -----------
  * The wire has no press/release: held keys autorepeat.
  * Release shows up as silence (maybe a `code == 0` "no key" frame).
- * One 0x3A frame → one KEY event with the scancode + time_ms.
- * One 0x39 frame → one LCD event with the action code.
+ * One 0x3A frame -> one KEY event with the scancode + time_ms.
+ * One 0x39 frame -> one LCD event with the action code.
  * Consumers that need debounced one-shots diff (type, code) AND time_ms; ones
  * that want continuous-on-hold react to every event.
  *
@@ -89,32 +89,11 @@ int kbd_event_pop(kbd_event_t *out);
 /* Inject a synthetic event. */
 void kbd_event_push(u8 type, u8 code);
 
-/* ---- Status push (opcode 0x35) -------------------------------------------
- *
- * The keyboard MCU's periodic status push (sub_cmd = 0) carries brightness,
- * frame width, plus the user-visible status fields below.  We split the
- * decode in two so callers can subscribe to just the bits they care about
- * (battery alone, or all keyboard status).
- *
- * Wire mapping (relative to the first payload byte after LH/LL — i.e. the
- * sub_cmd byte is payload[0]):
- *
- *   payload[13]    = charge flag: 2 == charging
- *   payload[14]    = battery percent (0..100)
- *   payload[15]    = caps-lock indicator: 2 == caps on (firmware quirk)
- *   payload[16]    = connection type (see kbd_conn_type_t)
- *   payload[17]    = keyboard layer: 0 = base, 1..N renders as subscript N-1
- *   payload[20]    = OS mode: 0 = none, 1 = Mac, >=2 = Windows
- *   payload[21]    = Win-lock: 1 = Win key disabled
- *
- * All exposed fields read as 0xFF until the first valid 0x35 packet arrives.
- */
-
 typedef enum {
     KBD_CONN_NONE     = 0,
-    KBD_CONN_BLE_1    = 1,
-    KBD_CONN_BLE_2    = 2,
-    KBD_CONN_BLE_3    = 3,
+    KBD_CONN_BT_1    = 1,
+    KBD_CONN_BT_2    = 2,
+    KBD_CONN_BT_3    = 3,
     KBD_CONN_2_4_GHZ  = 4,
     KBD_CONN_WIRED    = 5,
 } kbd_conn_type_t;
@@ -150,27 +129,14 @@ void kbd_battery_set_callback(kbd_battery_cb_t cb);
 void kbd_status_get(kbd_status_t *out);
 void kbd_status_set_callback(kbd_status_cb_t cb);
 
-/* ---- PC sensor panel (opcode 0xFC) ---------------------------------------
- *
- * The host PC companion app pushes CPU/GPU/MB temperatures + fan RPM + net
- * speed once per second.  Temps are signed whole °C; KBD_TEMP_INVALID is
- * the sentinel for "sensor disconnected / not yet seen".
- *
- * Wire decode per BE i16, sign-magnitude (bit 15 = negative), divide by 10.
- * The wire sentinel 0xFFFF (NaN-style) is mapped to KBD_TEMP_INVALID here.
- *
- * Distinct from the device-badge temp trio carried by opcodes 0x37 / 0xFE
- * (see kbd_badge_temps_t below).
- */
-
 #define KBD_TEMP_INVALID  ((s16)0x8000)
 
 typedef struct {
     s16 cpu_temp_c;
     s16 gpu_temp_c;
-    s16 mb_temp_c;
+    s16 unk_field;
     u16 fan_rpm;
-    u16 net_speed;           /* host-defined unit, typically KB/s */
+    u16 net_speed;
     u32 last_update_ms;
 } kbd_sensors_t;
 

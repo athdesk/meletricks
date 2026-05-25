@@ -1,12 +1,12 @@
 #ifndef GFX_WIDGETS_CLOCK_H
 #define GFX_WIDGETS_CLOCK_H
-#include "gfx.h"
+#include "gfx_widgets.h"
 
 #define GFX_CLOCK_MAX_SLOTS 8        /* HH:MM:SS */
 typedef struct {
-    const GfxFont *font;
-    GfxColor       color;
-    GfxColor       bg_color;
+    const GfxFont *Font;
+    GfxColor       Color;
+    GfxColor       BgColor;
     bool           skip_clear;
     bool           show_seconds;
     GfxHalign      halign;
@@ -29,5 +29,8 @@ int  GfxClockTick(GfxClock *c);
                  &(GfxClock){ __VA_ARGS__ }, \
                  GFX_DRAW_FN(GfxClockDraw), \
                  GFX_TICK_FN(GfxClockTick))
+
+GFX_DEFINE_APPLIER(GfxClock, BgColor, { _d->cache_ready = 0; })
+GFX_DEFINE_APPLIER(GfxClock, Color,   { _d->cache_ready = 0; })
 
 #endif

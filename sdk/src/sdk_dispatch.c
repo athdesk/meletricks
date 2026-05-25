@@ -15,7 +15,7 @@
  *
  * Stack overflow: each task gets a 4-byte canary written at the
  * bottom of its stack on the first tick.  Before re-entering a task
- * each tick, the scheduler checks the canary; mismatch ⇒ overflow.
+ * each tick, the scheduler checks the canary; mismatch -> overflow.
  * Detection halts ALL tasks (g_sdk.tasks_halted = 1) because the
  * offender's underflow may have trashed neighbour state in .bss;
  * the event is recorded in g_sdk_panic for host inspection.
@@ -133,7 +133,7 @@ static void sdk_first_tick(void)
 {
     sdk_system_setup_once();
     sdk_canaries_init();
-    if (_fr_user_setup_end > _fr_user_setup_start) {
+    if (&_fr_user_setup_end[0] > &_fr_user_setup_start[0]) {
         fr_fn_t setup = (fr_fn_t)((u32)_fr_user_setup_start | 1u);
         setup();
     }

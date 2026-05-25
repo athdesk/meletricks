@@ -1,7 +1,7 @@
 /* Settings state: global palette, sleep, clock seconds. Screen-specific
  * tunables (WPM graph, Life, Wireframe) live in their own screen .c files. */
-#ifndef HELLO_SETTINGS_H
-#define HELLO_SETTINGS_H
+#ifndef SETTINGS_H
+#define SETTINGS_H
 
 #include "gfx.h"
 
@@ -52,16 +52,14 @@ void settings_bind_demo_clock_bg(const GfxRenderTarget *t);
 typedef void (*BgTargetApplyFn)(GfxWidget *w, const GfxRenderTarget *t);
 void settings_register_bg_consumer(GfxWidget *w, BgTargetApplyFn fn);
 
-typedef void (*AccentApplyFn)(GfxWidget *w, GfxColor c);
-void settings_register_accent    (GfxWidget *w, AccentApplyFn fn);
+typedef void (*ColorApplyFn)(GfxWidget *w, GfxColor c);
+void settings_register_accent    (GfxWidget *w, ColorApplyFn fn);
 void settings_register_breadcrumb(GfxWidget *w);
 void settings_register_border    (GfxWidget *w);
 
-typedef void (*SecondaryApplyFn)(GfxWidget *w, GfxColor c);
-void settings_register_secondary(GfxWidget *w, SecondaryApplyFn fn);
+void settings_register_secondary(GfxWidget *w, ColorApplyFn fn);
 
-typedef void (*BgApplyFn)(GfxWidget *w, GfxColor c);
-void settings_register_bg    (GfxWidget *w, BgApplyFn fn);
+void settings_register_bg    (GfxWidget *w, ColorApplyFn fn);
 void settings_register_screen(GfxScreen *s);
 
 typedef void (*FontApplyFn)(GfxWidget *w, const GfxFont *f);

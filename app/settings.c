@@ -33,18 +33,18 @@ int      fg_color_get(void)        { return s_fg_idx; }
 #define MAX_BREADCRUMBS 16
 #define MAX_BORDERS     16
 
-typedef struct { GfxWidget *w; AccentApplyFn fn; } AccentEntry;
+typedef struct { GfxWidget *w; ColorApplyFn fn; } ColorEntry;
 
-static AccentEntry s_accent[MAX_ACCENT];
+static ColorEntry s_accent[MAX_ACCENT];
 static int         s_accent_n;
 static GfxWidget  *s_breadcrumbs[MAX_BREADCRUMBS];
 static int         s_breadcrumbs_n;
 static GfxWidget  *s_borders[MAX_BORDERS];
 static int         s_borders_n;
 
-void settings_register_accent(GfxWidget *w, AccentApplyFn fn)
+void settings_register_accent(GfxWidget *w, ColorApplyFn fn)
 {
-    if (s_accent_n < MAX_ACCENT) s_accent[s_accent_n++] = (AccentEntry){ w, fn };
+    if (s_accent_n < MAX_ACCENT) s_accent[s_accent_n++] = (ColorEntry){ w, fn };
 }
 void settings_register_breadcrumb(GfxWidget *w)
 {
@@ -64,7 +64,7 @@ void fg_color_set(int v)
         s_accent[i].fn(s_accent[i].w, c);
     }
     for (int i = 0; i < s_breadcrumbs_n; i++) {
-        ((GfxBreadcrumb *)s_breadcrumbs[i]->data)->color = c;
+        ((GfxBreadcrumb *)s_breadcrumbs[i]->data)->Color = c;
         GfxMarkDirty(s_breadcrumbs[i]);
     }
 }
@@ -98,14 +98,13 @@ GfxColor secondary_color(void)     { return SECONDARY_COLOR_VALUES[s_secondary_i
 int      secondary_color_get(void) { return s_secondary_idx; }
 
 #define MAX_SECONDARY 16
-typedef struct { GfxWidget *w; SecondaryApplyFn fn; } SecondaryEntry;
-static SecondaryEntry s_secondary[MAX_SECONDARY];
+static ColorEntry s_secondary[MAX_SECONDARY];
 static int            s_secondary_n;
 
-void settings_register_secondary(GfxWidget *w, SecondaryApplyFn fn)
+void settings_register_secondary(GfxWidget *w, ColorApplyFn fn)
 {
     if (s_secondary_n < MAX_SECONDARY) {
-        s_secondary[s_secondary_n++] = (SecondaryEntry){ w, fn };
+        s_secondary[s_secondary_n++] = (ColorEntry){ w, fn };
     }
 }
 
@@ -143,16 +142,14 @@ int      bg_color_get(void)   { return s_bg_idx; }
 #define MAX_BG_APPLY  32
 #define MAX_SCREENS   16
 
-typedef struct { GfxWidget *w; BgApplyFn fn; } BgEntry;
-
-static BgEntry    s_bg_apply[MAX_BG_APPLY];
+static ColorEntry s_bg_apply[MAX_BG_APPLY];
 static int        s_bg_apply_n;
 static GfxScreen *s_screens[MAX_SCREENS];
 static int        s_screens_n;
 
-void settings_register_bg(GfxWidget *w, BgApplyFn fn)
+void settings_register_bg(GfxWidget *w, ColorApplyFn fn)
 {
-    if (s_bg_apply_n < MAX_BG_APPLY) s_bg_apply[s_bg_apply_n++] = (BgEntry){ w, fn };
+    if (s_bg_apply_n < MAX_BG_APPLY) s_bg_apply[s_bg_apply_n++] = (ColorEntry){ w, fn };
 }
 void settings_register_screen(GfxScreen *s)
 {
@@ -173,7 +170,7 @@ void bg_color_set(int v)
     }
     GfxColor frame_c = frame_color_value();
     for (int i = 0; i < s_borders_n; i++) {
-        ((GfxBorder *)s_borders[i]->data)->color = frame_c;
+        ((GfxBorder *)s_borders[i]->data)->Color = frame_c;
         GfxMarkDirty(s_borders[i]);
     }
     GfxForceFullRedraw();
@@ -206,7 +203,7 @@ void frame_color_set(int v)
     s_frame_idx = v;
     GfxColor c = frame_color_value();
     for (int i = 0; i < s_borders_n; i++) {
-        ((GfxBorder *)s_borders[i]->data)->color = c;
+        ((GfxBorder *)s_borders[i]->data)->Color = c;
         GfxMarkDirty(s_borders[i]);
     }
 }

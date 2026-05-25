@@ -1,15 +1,12 @@
-/* BatteryBadge: percent text + battery icon. Sits in the top-right
- * corner of every demo screen and updates via the SDK's battery
- * push callback (no per-frame polling). */
-#ifndef HELLO_WIDGET_BATTERY_H
-#define HELLO_WIDGET_BATTERY_H
+#ifndef WIDGET_BATTERY_H
+#define WIDGET_BATTERY_H
 
 #include "gfx.h"
 
 typedef struct {
-    const GfxFont *font;
-    GfxColor       color;
-    GfxColor       bg_color;
+    const GfxFont *Font;
+    GfxColor       Color;
+    GfxColor       BgColor;
     bool           skip_clear;
     /* state — pulled from the SDK by BatteryBadgeBindCallback. */
     u8             battery_pct;
@@ -19,11 +16,15 @@ typedef struct {
 void BatteryBadgeDraw(GfxRenderingTile *tile, BatteryBadge *b);
 
 /* Hook the SDK's battery push callback. Call once after construction;
- * only one BatteryBadge instance is supported. */
+ * only one BatteryBadge can use this. */
 void BatteryBadgeBindCallback(GfxWidget *w);
 
 #define NewBatteryBadge(...) \
     GfxNewWidget(sizeof(BatteryBadge), &(BatteryBadge){ __VA_ARGS__ }, \
                  GFX_DRAW_FN(BatteryBadgeDraw), NULL)
+
+GFX_DEFINE_APPLIER(BatteryBadge, Color)
+GFX_DEFINE_APPLIER(BatteryBadge, BgColor)
+GFX_DEFINE_APPLIER(BatteryBadge, Font)
 
 #endif

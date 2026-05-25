@@ -1,7 +1,3 @@
-﻿/* meletweaks â€” demo entry: builds all screens, wires registries,
- * dispatches keyboard input. Each widget kind lives in its own
- * widget_*.c file; settings state in settings.c; WPM in wpm.c. */
-
 #include "common.h"
 #include "settings.h"
 #include "wpm.h"
@@ -20,17 +16,9 @@
 #include "screens/screen_text.h"
 #include "screens/screen_main.h"
 
-/* -- Framebuffer ------------------------------------------------ */
-
 static GfxFb s_fb;
 
-/* -- Shared overlay background ---------------------------------- *
- * Bounce + Wireframe both occupy the same body geometry, so one
- * buffer covers both. The pixel array is static â€” at ~64 KB it's
- * well past what ke_malloc will hand out, but it sits in BSS which
- * the linker maps into PSRAM. The background is itself a widget
- * (here a clock) wrapped in a GfxRenderTarget so the library
- * auto-ticks it inside GfxTick. */
+// s_overlay_bg is the background widget for Bounce and Wireframe
 #define OVERLAY_BG_W  (LCD_W - 2 * BODY_INSET_X)
 #define OVERLAY_BG_H  (EXPANDED_BODY_H)
 static GfxFb           s_overlay_bg;
@@ -38,61 +26,9 @@ static u16             s_overlay_bg_pixels[OVERLAY_BG_W * OVERLAY_BG_H];
 static GfxWidget      *s_overlay_bg_widget;
 GfxRenderTarget        s_overlay_bg_target;
 
-/* -- Shared chrome widget pointers ------------------------------ */
 
 GfxWidget *s_navbar;
 GfxWidget *s_statusbar;
-
-/* -- Accent appliers -------------------------------------------- */
-
-void accent_menu(GfxWidget *w, GfxColor c)
-{ ((GfxMenuList *)w->data)->color_indicator = c; GfxMarkDirty(w); }
-
-static void accent_statusbar(GfxWidget *w, GfxColor c)
-{ ((StatusBar *)w->data)->color = c; GfxMarkDirty(w); }
-static void accent_battery(GfxWidget *w, GfxColor c)
-{ ((BatteryBadge *)w->data)->color = c; GfxMarkDirty(w); }
-
-/* -- Bg appliers ------------------------------------------------ */
-
-void bg_menu(GfxWidget *w, GfxColor c)
-{ ((GfxMenuList *)w->data)->bg_color = c; GfxMarkDirty(w); }
-
-void bg_clock(GfxWidget *w, GfxColor c)
-{
-    GfxClock *cl = w->data;
-    cl->bg_color   = c;
-    cl->cache_ready = 0;   /* force full repaint to overwrite stale pixels */
-    GfxMarkDirty(w);
-}
-
-static void bg_breadcrumb(GfxWidget *w, GfxColor c)
-{ ((GfxBreadcrumb *)w->data)->bg_color = c; GfxMarkDirty(w); }
-static void bg_statusbar(GfxWidget *w, GfxColor c)
-{ ((StatusBar *)w->data)->bg_color = c; GfxMarkDirty(w); }
-static void bg_battery(GfxWidget *w, GfxColor c)
-{ ((BatteryBadge *)w->data)->bg_color = c; GfxMarkDirty(w); }
-static void bg_navbar(GfxWidget *w, GfxColor c)
-{ ((NavBar *)w->data)->bg_color = c; GfxMarkDirty(w); }
-
-/* -- Font appliers ---------------------------------------------- */
-
-static void font_breadcrumb(GfxWidget *w, const GfxFont *f)
-{ ((GfxBreadcrumb *)w->data)->font = f; GfxMarkDirty(w); }
-static void font_battery(GfxWidget *w, const GfxFont *f)
-{ ((BatteryBadge *)w->data)->font = f; GfxMarkDirty(w); }
-static void font_menu(GfxWidget *w, const GfxFont *f)
-{ ((GfxMenuList *)w->data)->font = f; GfxMarkDirty(w); }
-
-/* -- Secondary appliers ---------------------------------------- */
-
-void secondary_clock(GfxWidget *w, GfxColor c)
-{
-    GfxClock *cl = w->data;
-    cl->color       = c;
-    cl->cache_ready = 0;
-    GfxMarkDirty(w);
-}
 
 /* -- Chrome factories ------------------------------------------- */
 
@@ -100,7 +36,7 @@ GfxWidget *make_border(void)
 {
     GfxWidget *w = NewGfxBorder(
         .radius = GFX_CORNER_RADIUS, .thickness = 2,
-        .color = frame_color_value(),
+        .Color = frame_color_value(),
     );
     settings_register_border(w);
     return w;
@@ -109,55 +45,52 @@ GfxWidget *make_border(void)
 static GfxWidget *make_breadcrumb(void)
 {
     GfxWidget *w = NewGfxBreadcrumb(
-        .font = &font_montserrat_14,
-        .color = accent_color(), .bg_color = bg_color_value(),
+        .Font = &font_montserrat_14,
+        .Color = accent_color(), .BgColor = bg_color_value(),
         .fade_width = 24, .separator = " > ",
     );
     settings_register_breadcrumb(w);
-    settings_register_bg(w, bg_breadcrumb);
-    settings_register_header_font(w, font_breadcrumb);
+    settings_register_bg(w, GFX_APPLIER_FN(GfxBreadcrumb, BgColor));
+    settings_register_header_font(w, GFX_APPLIER_FN(GfxBreadcrumb, Font));
     return w;
 }
-
-static void bg_textbox(GfxWidget *w, GfxColor c)
-{ ((GfxTextbox *)w->data)->bg_color = c; GfxMarkDirty(w); }
 
 GfxWidget *make_placeholder(const char *text)
 {
     GfxWidget *w = NewGfxTextbox(
-        .font   = &font_lora_24,
-        .color  = GFX_GREY,
-        .bg_color = bg_color_value(),
+        .Font   = &font_lora_24,
+        .Color  = GFX_GREY,
+        .BgColor = bg_color_value(),
         .text   = text,
         .halign = GFX_ALIGN_CENTER,
         .valign = GFX_VALIGN_MIDDLE,
     );
-    settings_register_bg(w, bg_textbox);
+    settings_register_bg(w, GFX_APPLIER_FN(GfxTextbox, BgColor));
     return w;
 }
 
-/* Menu fills the body area down to ~y=170 â€” settings screens don't
+/* Menu fills the body area down to ~y=170 — settings screens don't
  * carry the statusbar so we get the extra ~28 px to use. Tight item
  * spacing (4 px gutter, 24 px per row) lets the longer Settings list
  * fit 6 rows visible instead of 5 with the room we have. */
 GfxWidget *make_menu(const GfxMenuItem *items, int n, GfxMenuIndicatorAlign align)
 {
-    /* Menu uses the full no-statusbar area, not BODY_TOP_Y â€” the
+    /* Menu uses the full no-statusbar area, not BODY_TOP_Y — the
      * body shift that gives demos visual breathing space would just
      * eat rows the menu wants for items. */
     GfxWidget *w = NewGfxMenuList(
-        .font = &font_montserrat_14,
-        .color_normal             = GFX_GREY,
-        .color_selected           = GFX_WHITE,
-        .color_indicator          = accent_color(),
-        .color_indicator_inactive = GFX_GREY,
-        .bg_color                 = bg_color_value(),
+        .Font = &font_montserrat_14,
+        .ColorNormal             = GFX_GREY,
+        .ColorSelected           = GFX_WHITE,
+        .ColorIndicator          = accent_color(),
+        .ColorIndicatorInactive = GFX_GREY,
+        .BgColor                 = bg_color_value(),
         .items = items, .item_count = n,
         .item_spacing  = 4,
         .indicator_pad = 28,
         .indicator_align = align,
     );
-    settings_register_list_font(w, font_menu);
+    settings_register_list_font(w, GFX_APPLIER_FN(GfxMenuList, Font));
     return w;
 }
 
@@ -167,7 +100,7 @@ GfxWidget *make_menu(const GfxMenuItem *items, int n, GfxMenuIndicatorAlign alig
 
 static int  s_asleep = 0;
 static u32  s_last_activity_ms = 0;
-static int  s_input_inverted = 0;
+static int  s_input_inverted = 1;
 int  input_inverted_get(void)  { return s_input_inverted; }
 void input_inverted_set(int v) { s_input_inverted = v ? 1 : 0; }
 
@@ -182,41 +115,6 @@ static GfxWidget *current_menu_widget(void)
     if (top == &s_graph_settings_scr)     return s_graph_settings_menu;
     if (top == &s_fonts_scr)              return s_fonts_menu;
     return NULL;
-}
-
-static void menu_activate(GfxWidget *mw)
-{
-    if (!mw) return;
-    GfxMenuList *m = mw->data;
-    if (!m || m->item_count <= 0) return;
-    if (m->selected < 0 || m->selected >= m->item_count) return;
-    const GfxMenuItem *it = &m->items[m->selected];
-
-    /* ENTER toggles slider/choice edit mode; UP/DOWN then adjusts. */
-    if (m->editing) {
-        m->editing = 0;
-        GfxMarkDirty(mw);
-        return;
-    }
-    switch (it->type) {
-    case GFX_MENU_SLIDER:
-    case GFX_MENU_CHOICE:
-        m->editing = 1;
-        GfxMarkDirty(mw);
-        break;
-    case GFX_MENU_TOGGLE:
-        if (it->toggle.get && it->toggle.set) {
-            it->toggle.set(!it->toggle.get());
-            GfxMarkDirty(mw);
-        }
-        break;
-    case GFX_MENU_LINK:
-        if (it->link.target) GfxNavTo((GfxScreen *)it->link.target);
-        break;
-    case GFX_MENU_ACTION:
-        if (it->action.activate) it->action.activate();
-        break;
-    }
 }
 
 static void handle_input(void)
@@ -287,9 +185,7 @@ static void handle_input(void)
                 GfxCarouselPrev(s_main_carousel->data);
                 GfxMarkDirty(s_main_carousel);
             } else if (menu) {
-                GfxMenuList *m = menu->data;
-                if (m->editing) GfxMenuListAdjust(m, -1);
-                else            GfxMenuListSelectPrev(m);
+                GfxMenuListUp(menu->data);
                 GfxMarkDirty(menu);
             }
             break;
@@ -298,9 +194,7 @@ static void handle_input(void)
                 GfxCarouselNext(s_main_carousel->data);
                 GfxMarkDirty(s_main_carousel);
             } else if (menu) {
-                GfxMenuList *m = menu->data;
-                if (m->editing) GfxMenuListAdjust(m, +1);
-                else            GfxMenuListSelectNext(m);
+                GfxMenuListDown(menu->data);
                 GfxMarkDirty(menu);
             }
             break;
@@ -316,16 +210,11 @@ static void handle_input(void)
             } else if (top == &s_graph_scr) {
                 GfxNavTo(&s_graph_settings_scr);
             } else if (menu) {
-                menu_activate(menu);
+                GfxMenuListEnter(menu);
             }
             break;
         case KBD_LCD_BACK:
-            if (menu && ((GfxMenuList *)menu->data)->editing) {
-                ((GfxMenuList *)menu->data)->editing = 0;
-                GfxMarkDirty(menu);
-            } else {
-                GfxNavBack();
-            }
+            if (!GfxMenuListBack(menu)) GfxNavBack();
             break;
         default: break;
         }
@@ -334,7 +223,7 @@ static void handle_input(void)
 
 /* -- Sleep ------------------------------------------------------ */
 
-void meletweaks_sleep_now(void)
+void meletricks_sleep_now(void)
 {
     s_asleep = 1;
     lcd_sleep();
@@ -360,18 +249,18 @@ static void build_overlay_bg(void)
     GfxFbClear(&s_overlay_bg, bg_color_value());
 
     s_overlay_bg_widget = NewGfxClock(
-        .font = &font_montserrat_64,
-        .color = secondary_color(),
-        .bg_color = bg_color_value(),
+        .Font = &font_montserrat_64,
+        .Color = secondary_color(),
+        .BgColor = bg_color_value(),
         .show_seconds = clock_seconds_get(),
         .halign = GFX_ALIGN_CENTER,
         .valign = GFX_VALIGN_MIDDLE,
     );
-    settings_register_bg(s_overlay_bg_widget, bg_clock);
-    settings_register_secondary(s_overlay_bg_widget, secondary_clock);
+    settings_register_bg(s_overlay_bg_widget, GFX_APPLIER_FN(GfxClock, BgColor));
+    settings_register_secondary(s_overlay_bg_widget, GFX_APPLIER_FN(GfxClock, Color));
     settings_register_clock(s_overlay_bg_widget);
 
-    /* The target itself isn't registered globally â€” consumer widgets
+    /* The target itself isn't registered globally — consumer widgets
      * pick it up via GfxAddWidgetDep, and the library walks visible
      * widgets' deps each tick. No consumer visible => bg doesn't tick. */
     s_overlay_bg_target = (GfxRenderTarget){
@@ -404,40 +293,29 @@ static void fps_present_hook(GfxFb *fb)
 
 static void build_overlays(void)
 {
-    /* Battery badge takes the top-right corner. Updates via SDK push
-     * callback, not polling. */
     GfxWidget *s_battery_badge = NewBatteryBadge(
-        .font = &font_montserrat_14,
-        .color = accent_color(), .bg_color = bg_color_value(),
+        .Font = &font_montserrat_14,
+        .Color = accent_color(), .BgColor = bg_color_value(),
     );
-    settings_register_accent(s_battery_badge, accent_battery);
-    settings_register_bg(s_battery_badge, bg_battery);
-    settings_register_header_font(s_battery_badge, font_battery);
+    settings_register_accent(s_battery_badge, GFX_APPLIER_FN(BatteryBadge, Color));
+    settings_register_bg(s_battery_badge, GFX_APPLIER_FN(BatteryBadge, BgColor));
+    settings_register_header_font(s_battery_badge, GFX_APPLIER_FN(BatteryBadge, Font));
     BatteryBadgeBindCallback(s_battery_badge);
 
-    /* Statusbar sits 34 px tall at the bottom. Body shrinks (BODY_H
-     * reduced) so the two regions touch cleanly at y = BODY_TOP_Y +
-     * BODY_H = 136. Same instance referenced from every demo screen.
-     * Status fields (caps / conn / layer) update via the SDK push
-     * callback wired below â€” no per-frame polling. */
     s_statusbar = NewStatusBar(
-        .font = &font_fira_mono_14,
-        .color = accent_color(),
-        .color_dim = GFX_GREY,
-        .bg_color = bg_color_value(),
+        .Font = &font_fira_mono_14,
+        .Color = accent_color(),
+        .ColorDim = GFX_GREY,
+        .BgColor = bg_color_value(),
     );
     StatusBarBindCallbacks(s_statusbar);
-    settings_register_accent(s_statusbar, accent_statusbar);
-    settings_register_bg(s_statusbar, bg_statusbar);
+    settings_register_accent(s_statusbar, GFX_APPLIER_FN(StatusBar, Color));
+    settings_register_bg(s_statusbar, GFX_APPLIER_FN(StatusBar, BgColor));
 
-    /* NavBar consolidates the upper bar â€” owns the breadcrumb and
-     * the battery badge as children, and paints its own hairline
-     * separator along its bottom. From the library's perspective
-     * NavBar is one widget; child dispatch happens internally. */
     GfxWidget *s_breadcrumb = make_breadcrumb();
     s_navbar = NewNavBar(
-        .bg_color = bg_color_value(),
-        .separator_color = GFX_GREY,
+        .BgColor = bg_color_value(),
+        .SeparatorColor = GFX_GREY,
     );
     NavBarAddChild(s_navbar, s_breadcrumb,
                    (GfxBoundingBox){ HEADER_BC_X, 6, HEADER_BC_W,
@@ -445,7 +323,7 @@ static void build_overlays(void)
     NavBarAddChild(s_navbar, s_battery_badge,
                    (GfxBoundingBox){ HEADER_BATT_X, 6, HEADER_BATT_W,
                                      font_fira_mono_14.line_height });
-    settings_register_bg(s_navbar, bg_navbar);
+    settings_register_bg(s_navbar, GFX_APPLIER_FN(NavBar, BgColor));
 }
 
 /* -- Setup ------------------------------------------------------ */
@@ -454,7 +332,7 @@ static void build_overlays(void)
  * the shared header overlays, breadcrumb, and border last so the
  * outline always wins (paint order = list order). */
 
-FR_SETUP void hello_setup(void)
+FR_SETUP void app_setup(void)
 {
     gui_pause();
     lcd_te_sync_disable();
@@ -478,7 +356,7 @@ FR_SETUP void hello_setup(void)
     GfxNavTo(&s_main);
 }
 
-FR_TASK(hello_loop, 0x80000)
+FR_TASK(app_loop, 0x80000)
 {
     handle_input();
     sleep_tick();

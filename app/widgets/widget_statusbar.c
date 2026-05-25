@@ -6,7 +6,7 @@
 
 #define WPM_ICON_W 72
 
-static void icon_caps(GfxFb *fb, int x, int y, int caps_on,
+static inline void icon_caps(GfxFb *fb, int x, int y, int caps_on,
                       const GfxFont *font, GfxColor c_active,
                       GfxColor c_dim, GfxColor c_bg)
 {
@@ -14,7 +14,7 @@ static void icon_caps(GfxFb *fb, int x, int y, int caps_on,
     int icon_w = 24;
     int icon_h = 24;
 
-    /* Two concentric non-rounded rects → 2-px outline. */
+    /* Two concentric non-rounded rects -> 2-px outline. */
     GfxDrawRect(fb, x,     y,     &(GfxRect){ .w = icon_w,     .h = icon_h,     .radius = 0, .color = c });
     GfxDrawRect(fb, x + 1, y + 1, &(GfxRect){ .w = icon_w - 2, .h = icon_h - 2, .radius = 0, .color = c });
 
@@ -30,12 +30,12 @@ static void icon_caps(GfxFb *fb, int x, int y, int caps_on,
     GfxDrawCharBg(fb, font, text_x, text_y, (u8)buf[0], c, c_bg);
 }
 
-static void icon_transport(GfxFb *fb, int x, int y, u8 connection_type, const GfxFont *font, GfxColor c, GfxColor c_bg)
+static inline void icon_transport(GfxFb *fb, int x, int y, u8 connection_type, const GfxFont *font, GfxColor c, GfxColor c_bg)
 {
     int icon_w = 64;
     int icon_h = 24;
 
-    /* Two concentric non-rounded rects → 2-px outline. */
+    /* Two concentric non-rounded rects -> 2-px outline. */
     GfxDrawRect(fb, x,     y,     &(GfxRect){ .w = icon_w,     .h = icon_h,     .radius = 0, .color = c });
     GfxDrawRect(fb, x + 1, y + 1, &(GfxRect){ .w = icon_w - 2, .h = icon_h - 2, .radius = 0, .color = c });
 
@@ -46,9 +46,9 @@ static void icon_transport(GfxFb *fb, int x, int y, u8 connection_type, const Gf
     switch (connection_type) {
     case KBD_CONN_WIRED:   buf = "USB";   break;
     case KBD_CONN_2_4_GHZ: buf = "2.4G";  break;
-    case KBD_CONN_BLE_1:   buf = "BLE1";  break;
-    case KBD_CONN_BLE_2:   buf = "BLE2";  break;
-    case KBD_CONN_BLE_3:   buf = "BLE3";  break;
+    case KBD_CONN_BT_1:   buf = "BT 1";  break;
+    case KBD_CONN_BT_2:   buf = "BT 2";  break;
+    case KBD_CONN_BT_3:   buf = "BT 3";  break;
     default:               buf = "N/A";   break;
     }
 
@@ -58,12 +58,12 @@ static void icon_transport(GfxFb *fb, int x, int y, u8 connection_type, const Gf
     GfxDrawTextBg(fb, font, text_x, text_y, buf, c, c_bg);
 }
 
-static void icon_layer(GfxFb *fb, int x, int y, u8 layer, const GfxFont *font, GfxColor c, GfxColor c_bg)
+static inline void icon_layer(GfxFb *fb, int x, int y, u8 layer, const GfxFont *font, GfxColor c, GfxColor c_bg)
 {
     int icon_w = 32;
     int icon_h = 24;
 
-    /* Two concentric non-rounded rects → 2-px outline. */
+    /* Two concentric non-rounded rects -> 2-px outline. */
     GfxDrawRect(fb, x,     y,     &(GfxRect){ .w = icon_w,     .h = icon_h,     .radius = 0, .color = c });
     GfxDrawRect(fb, x + 1, y + 1, &(GfxRect){ .w = icon_w - 2, .h = icon_h - 2, .radius = 0, .color = c });
 
@@ -82,7 +82,7 @@ static void icon_layer(GfxFb *fb, int x, int y, u8 layer, const GfxFont *font, G
     GfxDrawTextBg(fb, font, text_x, text_y, buf, c, c_bg);
 }
 
-static void icon_wpm(GfxFb *fb, int x, int y, u32 v, const GfxFont *font,
+static inline void icon_wpm(GfxFb *fb, int x, int y, u32 v, const GfxFont *font,
                      GfxColor c, GfxColor c_bg)
 {
     int icon_w = WPM_ICON_W;
@@ -165,31 +165,26 @@ int StatusBarTick(StatusBar *s)
 
 void StatusBarDraw(GfxRenderingTile *tile, StatusBar *s)
 {
-    if (!s || !s->font) return;
+    if (!s || !s->Font) return;
 
     int wpm_x = tile->box.x + tile->box.w - 8 - WPM_ICON_W;
-    if (!s->skip_clear) {
-        /* Left cluster — caps + transport + layer */
-        GfxFillRect(tile->fb, tile->box.x, tile->box.y, 140, tile->box.h, s->bg_color);
-        /* Right cluster — WPM icon (4 px left gap + icon + 8 px right margin) */
-        GfxFillRect(tile->fb, wpm_x - 4, tile->box.y, WPM_ICON_W + 12, tile->box.h, s->bg_color);
-    }
+    if (!s->skip_clear) GfxFillTile(tile, s->BgColor);
 
     int cy     = tile->box.y + tile->box.h / 2 + 1;  /* +1 keeps text below the divider */
     int icon_y = cy - 12;                              /* tallest icons are ~24-26 px */
 
     /* -- Left cluster ---------------------------------- */
     int x = tile->box.x + 10;
-    icon_caps(tile->fb, x, icon_y, s->caps_on, s->font, s->color, s->color_dim, s->bg_color);
+    icon_caps(tile->fb, x, icon_y, s->caps_on, s->Font, s->Color, s->ColorDim, s->BgColor);
     x += 32;       /* icon_caps width 24 + 8 spacing */
 
-    icon_transport(tile->fb, x, icon_y, s->conn, s->font, s->color_dim, s->bg_color);
-    x += 72;       /* transport icon up to 64 wide + 8 spacing */
+    icon_transport(tile->fb, x, icon_y, s->conn, s->Font, s->ColorDim, s->BgColor);
+    x += 72;       /* transport icon up to 64 wide + `8 spacing */
 
-    icon_layer(tile->fb, x, icon_y, s->layer, s->font,
-               (s->layer - 1) ? s->color : s->color_dim, s->bg_color);
+    icon_layer(tile->fb, x, icon_y, s->layer, s->Font,
+               (s->layer - 1) ? s->Color : s->ColorDim, s->BgColor);
 
     /* -- Right cluster --------------------------------- */
-    GfxColor wpm_c = s->wpm_value ? s->color : s->color_dim;
-    icon_wpm(tile->fb, wpm_x, icon_y, s->wpm_value, s->font, wpm_c, s->bg_color);
+    GfxColor wpm_c = s->wpm_value ? s->Color : s->ColorDim;
+    icon_wpm(tile->fb, wpm_x, icon_y, s->wpm_value, s->Font, wpm_c, s->BgColor);
 }

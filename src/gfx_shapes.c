@@ -1,10 +1,16 @@
-/* shapes — primitive 2D drawing: lines, circles, arcs, triangles,
- * rectangle outlines (sharp or rounded). No widget state, just
- * stateless rasterizers built on the framebuffer primitives in
- * gfx_fb.c. */
+#include "gfx_shapes.h"
+#include "mem.h"
 
-#include "gfx.h"
-#include "mem.h"     /* memcpy → AEABI ROM impl, for fast row restore */
+void GfxFillRect(GfxFb *fb, int x, int y, int w, int h, GfxColor c)
+{
+    if (!GfxFbClipRect(fb, &x, &y, &w, &h)) return;
+    u16 *row    = &fb->pixels[y * fb->width + x];
+    int  stride = fb->width;
+    while (h--) {
+        GfxFillSpan(row, w, c);
+        row += stride;
+    }
+}
 
 /* sin(0°..90°) in Q12 (×4096). Reflected to cover 0..360°. */
 static const u16 s_sin_q12[91] = {
@@ -118,9 +124,9 @@ static void restore_hline(GfxFb *fb, int x, int y, int w,
                           const GfxFb *src, int sox, int soy)
 {
     if (w <= 0) return;
-    if (y < fb->clip_y0 || y >= fb->clip_y1) return;
-    if (x < fb->clip_x0) { w -= fb->clip_x0 - x; x = fb->clip_x0; }
-    if (x + w > fb->clip_x1) w = fb->clip_x1 - x;
+    if (y < fb->clip.y0 || y >= fb->clip.y1) return;
+    if (x < fb->clip.x0) { w -= fb->clip.x0 - x; x = fb->clip.x0; }
+    if (x + w > fb->clip.x1) w = fb->clip.x1 - x;
     if (w <= 0) return;
     int ly = y - soy;
     if (ly < 0 || ly >= src->height) return;
@@ -136,7 +142,7 @@ static void restore_hline(GfxFb *fb, int x, int y, int w,
 void GfxRestoreLine(GfxFb *fb, int x0, int y0, int x1, int y1,
                     const GfxFb *src, int sox, int soy)
 {
-    if (!src) return;
+    if (!src || src == fb) return;
     int dx =  (x1 > x0) ? (x1 - x0) : (x0 - x1);
     int dy = -((y1 > y0) ? (y1 - y0) : (y0 - y1));
     int sx = (x0 < x1) ? 1 : -1;
@@ -154,7 +160,7 @@ void GfxRestoreLine(GfxFb *fb, int x0, int y0, int x1, int y1,
 void GfxRestoreCircleFilled(GfxFb *fb, int cx, int cy, int r,
                             const GfxFb *src, int sox, int soy)
 {
-    if (!src || r <= 0) return;
+    if (!src || src == fb || r <= 0) return;
     int xi = 0, yi = r;
     int f = 1 - r;
     int ddf_x = 1, ddf_y = -2 * r;

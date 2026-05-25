@@ -6,7 +6,8 @@
 static u16 saved_instr;
 
 /* Patch the first instruction of the firmware GUI task with BX LR so each
- * invocation returns immediately; restore on resume. */
+ * invocation returns immediately; restore on resume.
+ * TODO: Consider adding a refcount here to avoid deleting the saved instruction */
 void gui_pause(void)
 {
     saved_instr = *FW_GUI_TASK_HANDLER;
@@ -23,7 +24,9 @@ void lcd_te_sync_disable(void) { *FW_LCD_TE_GATE = 0; }
 void lcd_te_sync_enable (void) { *FW_LCD_TE_GATE = 1; }
 
 /* FW_LCD_IDLE_FLAG: low byte of the GC9C01 SPI state struct. Cleared to 0
- * by gc9c01_display when it kicks a DMA; the DMA-complete IRQ sets it to 1. */
+ * by gc9c01_display when it kicks a DMA; the DMA-complete IRQ sets it to 1.
+ * TODO: consider yielding instead of spinning; need to understand the consequences.
+ */
 int  lcd_is_idle(void)   { return *FW_LCD_IDLE_FLAG != 0; }
 void lcd_wait_idle(void) { while (!*FW_LCD_IDLE_FLAG) { /* spin */ } }
 
@@ -50,6 +53,8 @@ void lcd_rtc_get_live(lcd_rtc_live_t *out)
  * FW_LCD_PREVENT_SLEEP_BIT: rwip prevent-sleep mask bit held while panel is
  * off. The firmware releases its own lock (bit 0x100) ~10 s after sleep,
  * which would let the SoC deep-sleep and trash injected code on wake. */
+
+// Is it worth to refcount those? For now we assume the caller fully owns sleep state.
 void lcd_sleep(void)
 {
     rwip_prevent_sleep_set(FW_LCD_PREVENT_SLEEP_BIT);

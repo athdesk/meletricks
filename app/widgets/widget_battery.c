@@ -113,14 +113,12 @@ void BatteryBadgeBindCallback(GfxWidget *w)
 
 void BatteryBadgeDraw(GfxRenderingTile *tile, BatteryBadge *b)
 {
-    if (!b || !b->font) return;
-    if (!b->skip_clear)
-        GfxFillRect(tile->fb, tile->box.x, tile->box.y,
-                    tile->box.w, tile->box.h, b->bg_color);
+    if (!b || !b->Font) return;
+    if (!b->skip_clear) GfxFillTile(tile, b->BgColor);
 
     /* Battery icon sits on the right side of the rect; text fills the
      * space to its left, right-aligned against the icon. */
-    int line_h = b->font->line_height;
+    int line_h = b->Font->line_height;
     int cy     = tile->box.y + tile->box.h / 2;
     int text_y = cy - line_h / 2;
 
@@ -131,10 +129,10 @@ void BatteryBadgeDraw(GfxRenderingTile *tile, BatteryBadge *b)
 
     char pct_buf[5];
     format_pct(pct_buf, b->battery_pct);
-    int pct_tw = GfxTextWidth(b->font, pct_buf);
+    int pct_tw = GfxTextWidth(b->Font, pct_buf);
     int text_x = batt_x - 4 - pct_tw;
 
-    GfxDrawTextBg(tile->fb, b->font, text_x, text_y, pct_buf, b->color, b->bg_color);
+    GfxDrawTextBg(tile->fb, b->Font, text_x, text_y, pct_buf, b->Color, b->BgColor);
     icon_battery(tile->fb, batt_x, batt_y, b->battery_pct, b->is_charging,
-                 b->color, b->bg_color);
+                 b->Color, b->BgColor);
 }

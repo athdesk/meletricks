@@ -1,34 +1,3 @@
-/*
- * 0xA5 keyboard-protocol parser + event queue + packet log.
- *
- * Wire frame:  0xA5 OP LH LL payload[LH<<8|LL] CS
- * CS = (~(OP + LH + LL + Σpayload)) & 0xFF, OR 0xFF (firmware accepts
- * either — matches kbd_uart_rx_frame_byte at 0x11001a00).
- *
- * Reverse engineered opcodes:
- *   0x3A — HID scancode report. payload = [0x00, sc_hi, sc_lo]; we
- *          treat sc_lo as the scancode (sc_hi is 0 except for the
- *          0xE0..0xE7 modifier range, which still fits in 8 bits).
- *   0x39 — LCD navigation button. payload = [0x00, action] where
- *          action in 1..4 maps onto KBD_LCD_DOWN/UP/ENTER/BACK.
- *   0x35 — Keyboard status push. Some fields:
- *            payload[13]    = charge flag       (2 == charging)
- *            payload[14]    = battery percent   (0..100)
- *            payload[15]    = caps-lock flag    (2 == caps on; firmware quirk)
- *            payload[16]    = connection type   (0..5)
- *            payload[17]    = active layer      (subscript = N-1)
- *            payload[20]    = OS mode           (0 none, 1 Mac, >=2 Win)
- *            payload[21]    = Win-lock          (1 == Win key disabled)
- *          Battery/charging gated on len >= 15; the rest on len >= 22.
- *   0xFC — PC sensor panel push. CPU/GPU/MB temps (BE i16 sign-mag /10
- *          with 0xFFFF sentinel) at payload[1..6], fan RPM at [7..8],
- *          net speed at [9..10].
- *   0x37 / 0xFE — Probably weather report. Needs more reverse engineering.
- *   0x38 / 0xFB — RTC sync. Packed BCD-ish datetime at payload[2..8];
- *          year is offset-encoded as (year - 2000 - 48) BE u16.
- *
- */
-
 #include "kbd_event.h"
 #include "uart_irq.h"
 #include "timer.h"
@@ -86,6 +55,13 @@ static volatile kbd_badge_temps_cb_t s_badge_cb;
 static volatile kbd_rtc_t          s_rtc     = { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
 static volatile kbd_rtc_cb_t       s_rtc_cb;
 
+/*
+ * Note: we don't disable IRQs when copying snapshots, so they can be torn.
+ * It's not a real issue since _get functions accept that they might get stale
+ * data (meant for polling). Callbacks should be safe since they only fire
+ * once the IRQ has updated the snapshot.
+ */
+
 void kbd_battery_get(kbd_battery_t *out)
 {
     out->battery_pct    = s_battery.battery_pct;
@@ -117,7 +93,7 @@ void kbd_sensors_get(kbd_sensors_t *out)
 {
     out->cpu_temp_c     = s_sensors.cpu_temp_c;
     out->gpu_temp_c     = s_sensors.gpu_temp_c;
-    out->mb_temp_c      = s_sensors.mb_temp_c;
+    out->unk_field      = s_sensors.unk_field;
     out->fan_rpm        = s_sensors.fan_rpm;
     out->net_speed      = s_sensors.net_speed;
     out->last_update_ms = s_sensors.last_update_ms;
@@ -182,7 +158,6 @@ static void log_packet(u8 opcode, u16 len, const u8 *payload, u8 csum_ok)
     u32 n = len;
     if (n > KBD_PKT_LOG_MAX_PAYLOAD) n = KBD_PKT_LOG_MAX_PAYLOAD;
     for (u32 j = 0; j < n; j++) e->payload[j] = payload[j];
-    for (u32 j = n; j < KBD_PKT_LOG_MAX_PAYLOAD; j++) e->payload[j] = 0;
 
     g_kbd_pkt_log_widx = (i + 1u) % KBD_PKT_LOG_ENTRIES;
 }
@@ -232,13 +207,8 @@ static void dispatch_status_packet(void)
         s_battery.is_charging    = charging;
         s_battery.last_update_ms = now_ms;
 
-        if (changed && s_battery_cb) {
-            kbd_battery_t snap;
-            snap.battery_pct    = pct;
-            snap.is_charging    = charging;
-            snap.last_update_ms = now_ms;
-            s_battery_cb(&snap);
-        }
+        if (changed && s_battery_cb)
+            s_battery_cb((const kbd_battery_t *)&s_battery);
     }
 
     /* Caps/conn/layer/OS/win-lock: need payload[21]. */
@@ -261,21 +231,11 @@ static void dispatch_status_packet(void)
         s_status.win_lock         = win_lock;
         s_status.last_update_ms   = now_ms;
 
-        if (changed && s_status_cb) {
-            kbd_status_t snap;
-            snap.caps_lock_active = caps;
-            snap.connection_type  = conn;
-            snap.kbd_layer        = layer;
-            snap.os_mode          = os_mode;
-            snap.win_lock         = win_lock;
-            snap.last_update_ms   = now_ms;
-            s_status_cb(&snap);
-        }
+        if (changed && s_status_cb)
+            s_status_cb((const kbd_status_t *)&s_status);
     }
 }
 
-/* Decode one BE i16 sign-magnitude temp with /10 scaling.  Wire 0xFFFF =
- * "sensor disconnected" → KBD_TEMP_INVALID. */
 static s16 decode_temp_be(u8 hi, u8 lo)
 {
     u16 raw = ((u16)hi << 8) | lo;
@@ -291,37 +251,23 @@ static u16 decode_be16(u8 hi, u8 lo)
 
 static void dispatch_pc_sensor_packet(void)
 {
-    /* Opcode 0xFC, sub_cmd = 0.  Payload layout (after sub_cmd at [0]):
-     *   [1..2]  CPU temp  (BE i16, sign-mag /10)
-     *   [3..4]  GPU temp
-     *   [5..6]  MB  temp
-     *   [7..8]  fan RPM   (BE u16)
-     *   [9..10] net speed (BE u16) */
     if (s_fsm_len < 11u || s_fsm_payload[0] != 0u) return;
 
     s16 cpu  = decode_temp_be(s_fsm_payload[1], s_fsm_payload[2]);
     s16 gpu  = decode_temp_be(s_fsm_payload[3], s_fsm_payload[4]);
-    s16 mb   = decode_temp_be(s_fsm_payload[5], s_fsm_payload[6]);
+    s16 unk  = decode_temp_be(s_fsm_payload[5], s_fsm_payload[6]);
     u16 rpm  = decode_be16(s_fsm_payload[7], s_fsm_payload[8]);
     u16 net  = decode_be16(s_fsm_payload[9], s_fsm_payload[10]);
 
     s_sensors.cpu_temp_c     = cpu;
     s_sensors.gpu_temp_c     = gpu;
-    s_sensors.mb_temp_c      = mb;
+    s_sensors.unk_field      = unk;
     s_sensors.fan_rpm        = rpm;
     s_sensors.net_speed      = net;
     s_sensors.last_update_ms = fr_millis();
 
-    if (s_sensors_cb) {
-        kbd_sensors_t snap;
-        snap.cpu_temp_c     = cpu;
-        snap.gpu_temp_c     = gpu;
-        snap.mb_temp_c      = mb;
-        snap.fan_rpm        = rpm;
-        snap.net_speed      = net;
-        snap.last_update_ms = s_sensors.last_update_ms;
-        s_sensors_cb(&snap);
-    }
+    if (s_sensors_cb)
+        s_sensors_cb((const kbd_sensors_t *)&s_sensors);
 }
 
 static void dispatch_badge_temps_packet(u8 opcode)
@@ -354,15 +300,8 @@ static void dispatch_badge_temps_packet(u8 opcode)
     s_badge.temp_c_c       = c;
     s_badge.last_update_ms = fr_millis();
 
-    if (s_badge_cb) {
-        kbd_badge_temps_t snap;
-        snap.badge_id       = badge;
-        snap.temp_a_c       = a;
-        snap.temp_b_c       = b;
-        snap.temp_c_c       = c;
-        snap.last_update_ms = s_badge.last_update_ms;
-        s_badge_cb(&snap);
-    }
+    if (s_badge_cb)
+        s_badge_cb((const kbd_badge_temps_t *)&s_badge);
 }
 
 static void dispatch_rtc_packet(void)
@@ -390,18 +329,8 @@ static void dispatch_rtc_packet(void)
     s_rtc.synced       = 1u;
     s_rtc.last_sync_ms = fr_millis();
 
-    if (s_rtc_cb) {
-        kbd_rtc_t snap;
-        snap.year         = s_rtc.year;
-        snap.month        = s_rtc.month;
-        snap.day          = s_rtc.day;
-        snap.hour         = s_rtc.hour;
-        snap.minute       = s_rtc.minute;
-        snap.second       = s_rtc.second;
-        snap.synced       = 1u;
-        snap.last_sync_ms = s_rtc.last_sync_ms;
-        s_rtc_cb(&snap);
-    }
+    if (s_rtc_cb)
+        s_rtc_cb((const kbd_rtc_t *)&s_rtc);
 }
 
 static void parse_byte(u8 b)
@@ -480,7 +409,7 @@ static void uart_isr(void)
     }
 }
 
-
+// TODO: Consider adding a refcount here to avoid deleting the saved ISR.
 static irq_handler_t saved_uart_isr;
 void kbd_event_init(void)
 {

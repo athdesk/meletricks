@@ -14,8 +14,7 @@
 
 /* Triggers a full DMA refresh of the 320x172 RGB565 LCD framebuffer.  The
  * source buffer must be exactly that geometry
- * Partial blits would require using set_window. We don't support it yet.
- */
+ * Partial blits would require using set_window. We don't support it yet. */
 FR_SYSCALL void m_draw_frame(const u8 *fb);
 
 /* Kick the firmware watchdog timer. */

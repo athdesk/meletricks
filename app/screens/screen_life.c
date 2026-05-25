@@ -74,8 +74,8 @@ void build_life(void)
 
     s_life_settings_menu = make_menu(LIFE_SETTINGS_ITEMS, LIFE_SETTINGS_COUNT,
                                      GFX_MENU_INDICATOR_NONE);
-    settings_register_accent(s_life_settings_menu, accent_menu);
-    settings_register_bg(s_life_settings_menu, bg_menu);
+    settings_register_accent(s_life_settings_menu, GFX_APPLIER_FN(GfxMenuList, ColorIndicator));
+    settings_register_bg(s_life_settings_menu, GFX_APPLIER_FN(GfxMenuList, BgColor));
     s_life_settings_slots[0] = (GfxWidgetSlot){ s_life_settings_menu, MENU_SLOT };
     s_life_settings_slots[1] = (GfxWidgetSlot){ s_navbar,             NAVBAR_SLOT };
     s_life_settings_slots[2] = (GfxWidgetSlot){ make_border(),        BORDER_SLOT };

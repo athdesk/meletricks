@@ -39,14 +39,14 @@ static int prev_visible(const GfxMenuList *m, int from)
     return -1;
 }
 
-void GfxMenuListSelectPrev(GfxMenuList *m)
+static void select_prev(GfxMenuList *m)
 {
     if (!m || m->item_count <= 0) return;
     int n = prev_visible(m, m->selected);
     if (n >= 0) m->selected = n;
 }
 
-void GfxMenuListSelectNext(GfxMenuList *m)
+static void select_next(GfxMenuList *m)
 {
     if (!m || m->item_count <= 0) return;
     int n = next_visible(m, m->selected);
@@ -73,7 +73,7 @@ void GfxMenuListSetHidden(GfxWidget *w, int idx, int hidden)
     GfxMarkDirty(w);
 }
 
-void GfxMenuListAdjust(GfxMenuList *m, int dir)
+static void adjust(GfxMenuList *m, int dir)
 {
     if (!m || !m->editing || m->item_count <= 0) return;
     if (m->selected < 0 || m->selected >= m->item_count) return;
@@ -97,6 +97,68 @@ void GfxMenuListAdjust(GfxMenuList *m, int dir)
     }
 }
 
+/* -- Command handlers -------------------------------------------- */
+
+void GfxMenuListUp(GfxMenuList *m)
+{
+    if (!m) return;
+    if (m->editing) adjust(m, -1);
+    else            select_prev(m);
+}
+
+void GfxMenuListDown(GfxMenuList *m)
+{
+    if (!m) return;
+    if (m->editing) adjust(m, +1);
+    else            select_next(m);
+}
+
+void GfxMenuListEnter(GfxWidget *w)
+{
+    if (!w) return;
+    GfxMenuList *m = w->data;
+    if (!m || m->item_count <= 0) return;
+    if (m->selected < 0 || m->selected >= m->item_count) return;
+    const GfxMenuItem *it = &m->items[m->selected];
+
+    if (m->editing) {
+        m->editing = 0;
+        GfxMarkDirty(w);
+        return;
+    }
+    switch (it->type) {
+    case GFX_MENU_SLIDER:
+    case GFX_MENU_CHOICE:
+        m->editing = 1;
+        GfxMarkDirty(w);
+        break;
+    case GFX_MENU_TOGGLE:
+        if (it->toggle.get && it->toggle.set) {
+            it->toggle.set(!it->toggle.get());
+            GfxMarkDirty(w);
+        }
+        break;
+    case GFX_MENU_LINK:
+        if (it->link.target) GfxNavTo((GfxScreen *)it->link.target);
+        break;
+    case GFX_MENU_ACTION:
+        if (it->action.activate) it->action.activate();
+        break;
+    }
+}
+
+/* Returns 1 if it consumed the event (was in edit mode, now exited),
+ * 0 if the caller should handle back-navigation (e.g. GfxNavBack). */
+int GfxMenuListBack(GfxWidget *w)
+{
+    if (!w) return 0;
+    GfxMenuList *m = w->data;
+    if (!m || !m->editing) return 0;
+    m->editing = 0;
+    GfxMarkDirty(w);
+    return 1;
+}
+
 static int format_int(char *buf, int v)
 {
     int n = 0;
@@ -117,7 +179,7 @@ static int visible_count(const GfxMenuList *m)
     return n;
 }
 
-/* Map an items[] index → its position among visible items, or -1 if
+/* Map an items[] index -> its position among visible items, or -1 if
  * the item itself is hidden. Indicator dots use this so the selected
  * dot tracks the visible row, not the raw items[] slot. */
 static int visible_pos_of(const GfxMenuList *m, int idx)
@@ -137,9 +199,9 @@ static void draw_indicators(GfxFb *fb, const GfxMenuList *m,
      * widget box — `box.h` is usually slightly larger than `rows_drawn *
      * per_item` (rounding slack) and the user expects arrows flush
      * with the first / last text row, not floating off in the slack. */
-    int per_item = m->font->line_height + m->item_spacing;
+    int per_item = m->Font->line_height + m->item_spacing;
     int text_top = box.y;
-    int text_bot = box.y + (rows_drawn - 1) * per_item + m->font->line_height;
+    int text_bot = box.y + (rows_drawn - 1) * per_item + m->Font->line_height;
 
     int tri_half = 6;
     int tri_h    = 6;
@@ -148,8 +210,8 @@ static void draw_indicators(GfxFb *fb, const GfxMenuList *m,
                  : (box.x + pad / 2);
 
     GfxColor up_c = (vis_scroll > 0)
-                  ? m->color_indicator
-                  : m->color_indicator_inactive;
+                  ? m->ColorIndicator
+                  : m->ColorIndicatorInactive;
     GfxDrawTriangle(fb, &(GfxTriangle){
         .x0 = tri_cx - tri_half, .y0 = text_top + tri_h,
         .x1 = tri_cx + tri_half, .y1 = text_top + tri_h,
@@ -158,8 +220,8 @@ static void draw_indicators(GfxFb *fb, const GfxMenuList *m,
     });
 
     GfxColor dn_c = (vis_scroll + rows_drawn < vis_total)
-                  ? m->color_indicator
-                  : m->color_indicator_inactive;
+                  ? m->ColorIndicator
+                  : m->ColorIndicatorInactive;
     GfxDrawTriangle(fb, &(GfxTriangle){
         .x0 = tri_cx - tri_half, .y0 = text_bot - tri_h,
         .x1 = tri_cx + tri_half, .y1 = text_bot - tri_h,
@@ -177,8 +239,8 @@ static void draw_indicators(GfxFb *fb, const GfxMenuList *m,
             int dy = top_y + (i * span) / (vis_total - 1);
             int is_sel = (i == sel_pos);
             int sz = is_sel ? 5 : 2;
-            GfxColor dc = is_sel ? m->color_indicator
-                                 : m->color_indicator_inactive;
+            GfxColor dc = is_sel ? m->ColorIndicator
+                                 : m->ColorIndicatorInactive;
             GfxFillRect(fb, tri_cx - sz / 2, dy - sz / 2, sz, sz, dc);
         }
     }
@@ -186,11 +248,11 @@ static void draw_indicators(GfxFb *fb, const GfxMenuList *m,
 
 void GfxMenuListDraw(GfxRenderingTile *tile, GfxMenuList *m)
 {
-    if (!m || !m->font || m->item_count <= 0) return;
+    if (!m || !m->Font || m->item_count <= 0) return;
 
-    if (!m->skip_clear) GfxFillRect(tile->fb, tile->box.x, tile->box.y, tile->box.w, tile->box.h, m->bg_color);
+    if (!m->skip_clear) GfxFillTile(tile, m->BgColor);
 
-    int line_h    = m->font->line_height;
+    int line_h    = m->Font->line_height;
     int per_item  = line_h + m->item_spacing;
     int max_fit   = tile->box.h / per_item;
     if (max_fit < 1) max_fit = 1;
@@ -253,7 +315,7 @@ void GfxMenuListDraw(GfxRenderingTile *tile, GfxMenuList *m)
         int is_slider    = (item->type == GFX_MENU_SLIDER);
         int is_choice    = (item->type == GFX_MENU_CHOICE);
         int is_editable  = is_slider || is_choice;
-        GfxColor c       = is_sel ? m->color_selected : m->color_normal;
+        GfxColor c       = is_sel ? m->ColorSelected : m->ColorNormal;
 
         /* Cursor: '*' while editing an editable row, '>' otherwise. */
         char buf[64];
@@ -264,7 +326,7 @@ void GfxMenuListDraw(GfxRenderingTile *tile, GfxMenuList *m)
 
         if (is_slider) {
             buf[n] = 0;
-            GfxDrawTextBg(tile->fb, m->font, text_x, row_y, buf, c, m->bg_color);
+            GfxDrawTextBg(tile->fb, m->Font, text_x, row_y, buf, c, m->BgColor);
 
             /* Fixed-width slider: always exactly half the row width,
              * right-aligned beside a fixed-width value column. Bars
@@ -275,15 +337,15 @@ void GfxMenuListDraw(GfxRenderingTile *tile, GfxMenuList *m)
             int bar_h  = 6;
             int val_x  = text_x + text_w - val_w;
             int bar_x  = val_x - 6 - bar_w;
-            int bar_y  = row_y + (m->font->line_height - bar_h) / 2;
+            int bar_y  = row_y + (m->Font->line_height - bar_h) / 2;
             int avail  = bar_w;
 
             /* Slider stays in the inactive colour until ENTER puts
              * the row into edit mode — selection alone shouldn't
              * suggest the value will move on UP/DOWN. */
             GfxColor bar_col = (is_sel && m->editing)
-                             ? m->color_indicator
-                             : m->color_indicator_inactive;
+                             ? m->ColorIndicator
+                             : m->ColorIndicatorInactive;
             GfxDrawRect(tile->fb, bar_x, bar_y, &(GfxRect){
                 .w = avail, .h = bar_h, .color = bar_col,
             });
@@ -301,18 +363,18 @@ void GfxMenuListDraw(GfxRenderingTile *tile, GfxMenuList *m)
 
             char vbuf[12];
             format_int(vbuf, v);
-            int vtw = GfxTextWidth(m->font, vbuf);
-            GfxDrawTextBg(tile->fb, m->font, val_x + (val_w - vtw), row_y, vbuf, c, m->bg_color);
+            int vtw = GfxTextWidth(m->Font, vbuf);
+            GfxDrawTextBg(tile->fb, m->Font, val_x + (val_w - vtw), row_y, vbuf, c, m->BgColor);
         } else if (item->type == GFX_MENU_TOGGLE && item->toggle.get) {
             buf[n++] = ':';
             buf[n++] = ' ';
             const char *s = item->toggle.get() ? "on" : "off";
             while (*s && n < 60) buf[n++] = *s++;
             buf[n] = 0;
-            GfxDrawTextBg(tile->fb, m->font, text_x, row_y, buf, c, m->bg_color);
+            GfxDrawTextBg(tile->fb, m->Font, text_x, row_y, buf, c, m->BgColor);
         } else if (is_choice && item->choice.get && item->choice.options) {
             buf[n] = 0;
-            GfxDrawTextBg(tile->fb, m->font, text_x, row_y, buf, c, m->bg_color);
+            GfxDrawTextBg(tile->fb, m->Font, text_x, row_y, buf, c, m->BgColor);
 
             int opt_n = item->choice.option_count;
             int v = item->choice.get();
@@ -332,13 +394,13 @@ void GfxMenuListDraw(GfxRenderingTile *tile, GfxMenuList *m)
              * the inactive accent unless we're actively editing
              * (where bright accent + < > markers signal "you're
              * driving this"). */
-            GfxColor rc = show_arrows ? m->color_indicator
-                                      : m->color_indicator_inactive;
-            int rw = GfxTextWidth(m->font, rbuf);
-            GfxDrawTextBg(tile->fb, m->font, text_x + text_w - rw, row_y, rbuf, rc, m->bg_color);
+            GfxColor rc = show_arrows ? m->ColorIndicator
+                                      : m->ColorIndicatorInactive;
+            int rw = GfxTextWidth(m->Font, rbuf);
+            GfxDrawTextBg(tile->fb, m->Font, text_x + text_w - rw, row_y, rbuf, rc, m->BgColor);
         } else {
             buf[n] = 0;
-            GfxDrawTextBg(tile->fb, m->font, text_x, row_y, buf, c, m->bg_color);
+            GfxDrawTextBg(tile->fb, m->Font, text_x, row_y, buf, c, m->BgColor);
         }
 
         row_y += per_item;

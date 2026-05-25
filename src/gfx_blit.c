@@ -1,4 +1,4 @@
-#include "gfx.h"
+#include "gfx_fb.h"
 
 /* Only set bits (=1) write to the framebuffer; clear bits are
  * a no-op (opaque foreground over preserved background — caller fills
@@ -11,11 +11,7 @@ void GfxBlit1Bpp(GfxFb *fb,
     if (w <= 0 || h <= 0) return;
 
     int sx = 0, sy = 0;
-    if (x < fb->clip_x0) { sx = fb->clip_x0 - x; w -= sx; x = fb->clip_x0; }
-    if (y < fb->clip_y0) { sy = fb->clip_y0 - y; h -= sy; y = fb->clip_y0; }
-    if (x + w > fb->clip_x1) w = fb->clip_x1 - x;
-    if (y + h > fb->clip_y1) h = fb->clip_y1 - y;
-    if (w <= 0 || h <= 0) return;
+    if (!GfxFbClipRectSrc(fb, &x, &y, &w, &h, &sx, &sy)) return;
 
     u16 *dst_row = &fb->pixels[y * fb->width + x];
     const u8 *src_row = src + sy * src_stride_bytes;
@@ -72,11 +68,7 @@ void GfxBlit2Bpp(GfxFb *fb,
 
 
     int sx = 0, sy = 0;
-    if (x < fb->clip_x0) { sx = fb->clip_x0 - x; w -= sx; x = fb->clip_x0; }
-    if (y < fb->clip_y0) { sy = fb->clip_y0 - y; h -= sy; y = fb->clip_y0; }
-    if (x + w > fb->clip_x1) w = fb->clip_x1 - x;
-    if (y + h > fb->clip_y1) h = fb->clip_y1 - y;
-    if (w <= 0 || h <= 0) return;
+    if (!GfxFbClipRectSrc(fb, &x, &y, &w, &h, &sx, &sy)) return;
 
     u16 palette[4];
     palette[0] = 0;                            /* unused — level 0 skipped */

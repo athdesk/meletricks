@@ -1,7 +1,5 @@
-/* Small icon drawers consumed by the main carousel. Each draws into an
- * h×h square at (x,y) in the given colour. */
-#ifndef HELLO_ICONS_H
-#define HELLO_ICONS_H
+#ifndef ICONS_H
+#define ICONS_H
 
 #include "gfx.h"
 
