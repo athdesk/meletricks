@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import collections
+import datetime
 import logging
 import random
 import sys
@@ -93,6 +94,7 @@ TRAP_TABLE: Dict[str, int] = {
     "m_draw_frame":             0x60000041,
     "sdk_get_fw_override":      0x60000045,
     "sdk_set_fw_override":      0x60000049,
+    "lcd_rtc_get_live":         0x6000004D,
 }
 
 
@@ -521,6 +523,14 @@ def _h_lcd_sleep(emu: Emu, uc: Uc) -> None: pass
 def _h_lcd_wake(emu: Emu, uc: Uc) -> None: pass
 
 
+def _h_lcd_rtc_get_live(emu: Emu, uc: Uc) -> None:
+    (out_ptr,) = get_args(uc, 1)
+    now = datetime.datetime.now()
+    buf = (now.year.to_bytes(2, "little")
+           + bytes([now.month, now.day, now.hour, now.minute, now.second, 0]))
+    uc.mem_write(out_ptr, buf)
+
+
 def _h_sdk_get_fw_override(emu: Emu, uc: Uc) -> None:
     set_ret(uc, emu.fw_override)
 
@@ -557,6 +567,7 @@ SDK_HANDLERS: Dict[str, Callable[[Emu, Uc], None]] = {
     "m_draw_frame":             _h_m_draw_frame,
     "sdk_get_fw_override":      _h_sdk_get_fw_override,
     "sdk_set_fw_override":      _h_sdk_set_fw_override,
+    "lcd_rtc_get_live":         _h_lcd_rtc_get_live,
 }
 
 

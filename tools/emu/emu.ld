@@ -50,6 +50,8 @@ PROVIDE(m_draw_frame           = 0x60000041);
 PROVIDE(sdk_get_fw_override    = 0x60000045);
 PROVIDE(sdk_set_fw_override    = 0x60000049);
 
+PROVIDE(lcd_rtc_get_live       = 0x6000004D);
+
 ENTRY(_emu_entry)
 
 SECTIONS
