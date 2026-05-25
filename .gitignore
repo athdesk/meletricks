@@ -135,6 +135,7 @@ htmlcov/
 # pyenv
 # .python-version
 
+emu_frames
 build
 build_emu
 meletricks*.bin
