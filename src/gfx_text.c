@@ -2,7 +2,7 @@
 
 const GfxGlyph *GfxFontLookup(const GfxFont *f, u8 cp)
 {
-    if (cp < f->first_cp || cp > f->last_cp) return NULL;
+    if (!f || cp < f->first_cp || cp > f->last_cp) return NULL;
     u8 slot = f->index[cp - f->first_cp];
     if (slot == GFX_GLYPH_ABSENT) return NULL;
     return &f->glyphs[slot];
@@ -11,6 +11,7 @@ const GfxGlyph *GfxFontLookup(const GfxFont *f, u8 cp)
 int GfxDrawChar(GfxFb *fb, const GfxFont *f,
                   int x, int y, u8 cp, GfxColor color)
 {
+    if (!f) return x;
     const GfxGlyph *g = GfxFontLookup(f, cp);
     if (!g) return x + f->default_advance;
 
@@ -39,6 +40,7 @@ int GfxDrawChar(GfxFb *fb, const GfxFont *f,
 int GfxDrawText(GfxFb *fb, const GfxFont *f,
                   int x, int y, const char *s, GfxColor color)
 {
+    if (!f || !s) return x;
     while (*s) {
         x = GfxDrawChar(fb, f, x, y, (u8)*s++, color);
     }
@@ -48,6 +50,7 @@ int GfxDrawText(GfxFb *fb, const GfxFont *f,
 int GfxDrawCharBg(GfxFb *fb, const GfxFont *f,
                   int x, int y, u8 cp, GfxColor fg, GfxColor bg)
 {
+    if (!f) return x;
     const GfxGlyph *g = GfxFontLookup(f, cp);
     if (!g) return x + f->default_advance;
 
@@ -77,6 +80,7 @@ int GfxDrawCharBg(GfxFb *fb, const GfxFont *f,
 int GfxDrawTextBg(GfxFb *fb, const GfxFont *f,
                   int x, int y, const char *s, GfxColor fg, GfxColor bg)
 {
+    if (!f || !s) return x;
     while (*s) {
         x = GfxDrawCharBg(fb, f, x, y, (u8)*s++, fg, bg);
     }
@@ -85,6 +89,7 @@ int GfxDrawTextBg(GfxFb *fb, const GfxFont *f,
 
 int GfxTextWidth(const GfxFont *f, const char *s)
 {
+    if (!f || !s) return 0;
     int w = 0;
     while (*s) {
         const GfxGlyph *g = GfxFontLookup(f, (u8)*s++);

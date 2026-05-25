@@ -142,7 +142,7 @@ static void restore_hline(GfxFb *fb, int x, int y, int w,
 void GfxRestoreLine(GfxFb *fb, int x0, int y0, int x1, int y1,
                     const GfxFb *src, int sox, int soy)
 {
-    if (!src) return;
+    if (!src || src == fb) return;
     int dx =  (x1 > x0) ? (x1 - x0) : (x0 - x1);
     int dy = -((y1 > y0) ? (y1 - y0) : (y0 - y1));
     int sx = (x0 < x1) ? 1 : -1;
@@ -160,7 +160,7 @@ void GfxRestoreLine(GfxFb *fb, int x0, int y0, int x1, int y1,
 void GfxRestoreCircleFilled(GfxFb *fb, int cx, int cy, int r,
                             const GfxFb *src, int sox, int soy)
 {
-    if (!src || r <= 0) return;
+    if (!src || src == fb || r <= 0) return;
     int xi = 0, yi = r;
     int f = 1 - r;
     int ddf_x = 1, ddf_y = -2 * r;
