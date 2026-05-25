@@ -13,7 +13,7 @@ NM  := arm-none-eabi-nm
 PYTHON ?= python3
 
 CFLAGS := \
-    -mcpu=cortex-m3 -mthumb -O2 -g          \
+    -mcpu=cortex-m3 -mthumb -O2 -g3         \
     -ffreestanding -fomit-frame-pointer      \
     -fno-exceptions -fno-unwind-tables       \
     -ffunction-sections -fdata-sections      \
@@ -29,7 +29,8 @@ LDFLAGS := \
     -L sdk \
     -T $(BOARD_DIR)/zoomtkldyna.ld \
     --gc-sections \
-    --emit-relocs
+    --emit-relocs \
+    --undefined=fw_rtc_set
 
 SRCS_C := \
     $(wildcard src/*.c)         \

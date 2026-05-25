@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import datetime
 import os
 import queue
 import struct
@@ -147,6 +148,8 @@ class _ElfSections:
 
             link_base = min(s.addr for s in raw_secs)
             by_idx, by_name, by_shndx, _ = _read_symtab(elf)
+
+            self.symbols = by_name
 
             if load_base is None:
                 self.entry = raw_entry
@@ -397,6 +400,92 @@ def _recover_stolen(tramp_bytes: bytes, tramp_addr: int) -> bytes | None:
             return tramp_bytes[stolen_start : insn.address - tramp_addr]
     return None
 
+def _pack_rtc(dt: datetime.datetime) -> int:
+    return (
+        (((dt.year - 2000) & 0x3F) << 26)
+        | ((dt.month  & 0x0F) << 22)
+        | ((dt.day    & 0x1F) << 17)
+        | ((dt.hour   & 0x1F) << 12)
+        | ((dt.minute & 0x3F) <<  6)
+        |  (dt.second & 0x3F)
+    )
+
+
+def _build_rtc_set_shellcode(
+    rtc_set_addr: int,
+    packed: int,
+    stolen: bytes,
+    return_addr: int,
+) -> bytes:
+    rt = return_addr  | 1
+    rs = rtc_set_addr | 1
+    head = _asm(
+        "push {r0, r1, r2, r3, r12, lr}\n"
+        f"movw r0,  #{packed & 0xFFFF:#x}\n"
+        f"movt r0,  #{(packed >> 16) & 0xFFFF:#x}\n"
+        f"movw r12, #{rs & 0xFFFF:#x}\n"
+        f"movt r12, #{(rs >> 16) & 0xFFFF:#x}\n"
+        "blx r12\n"
+        f"movw r0,  #{_SENTINEL_ADDR & 0xFFFF:#x}\n"
+        f"movt r0,  #{(_SENTINEL_ADDR >> 16) & 0xFFFF:#x}\n"
+        f"movw r1,  #{_SENTINEL_VALUE & 0xFFFF:#x}\n"
+        f"movt r1,  #{(_SENTINEL_VALUE >> 16) & 0xFFFF:#x}\n"
+        "str r1, [r0]\n"
+        "pop {r0, r1, r2, r3, r12, lr}\n",
+        addr=_TRAMPOLINE_ADDR,
+    )
+    tail_addr = _TRAMPOLINE_ADDR + len(head) + len(stolen)
+    tail = _asm(
+        f"movw r12, #{rt & 0xFFFF:#x}\n"
+        f"movt r12, #{(rt >> 16) & 0xFFFF:#x}\n"
+        "bx r12\n",
+        addr=tail_addr,
+    )
+    result = head + stolen + tail
+    if len(result) >= _SENTINEL_ADDR - _TRAMPOLINE_ADDR:
+        raise RuntimeError(
+            f"RTC-set shellcode ({len(result)} B) reaches the sentinel word."
+        )
+    return result
+
+
+async def _set_device_rtc(
+    client: BleakClient,
+    rtc_set_addr: int,
+    stolen: bytes,
+    return_addr: int,
+    tick_addr: int,
+    patch: bytes,
+    already_patched: bool,
+    log: Callable[[str], None],
+) -> bool:
+    now = datetime.datetime.now()
+    packed = _pack_rtc(now)
+    log(f"  Setting device RTC to {now.strftime('%Y-%m-%d %H:%M:%S')}")
+    log(f"    fw_rtc_set @ 0x{rtc_set_addr:08x}, packed = 0x{packed:08x}")
+
+    sc = _build_rtc_set_shellcode(rtc_set_addr, packed, stolen, return_addr)
+    await _ble_write(client, _SENTINEL_ADDR, struct.pack("<I", 0))
+    await _ble_write(client, _TRAMPOLINE_ADDR, sc)
+    if not already_patched:
+        await _ble_write(client, tick_addr, patch)
+
+    loop = asyncio.get_event_loop()
+    deadline = loop.time() + 5.0
+    while True:
+        raw = await _ble_read(client, _SENTINEL_ADDR, 4)
+        if struct.unpack("<I", bytes(raw[:4]))[0] == _SENTINEL_VALUE:
+            break
+        if loop.time() > deadline:
+            log("  Warning: RTC set timed out; clock may not be applied.")
+            return False
+        await asyncio.sleep(0.05)
+    log("  RTC applied.")
+
+    await _ble_write(client, tick_addr, stolen)
+    return True
+
+
 async def _upload_bytes(
     client: BleakClient,
     data: bytes,
@@ -466,14 +555,6 @@ async def load_elf_to_device(
                 f"Check that the ELF is built for this target."
             )
 
-        bss_ranges: list[tuple[int, int]] = []
-        for s in sorted(blob.sections, key=lambda x: x.addr):
-            if s.data is None:
-                bss_ranges.append((s.addr, s.size))
-            else:
-                log(f"  Uploading {s.name:<10}  {s.size} B @ 0x{s.addr:08x}")
-                await _upload_bytes(client, s.data, s.addr, log)
-
         patch = _make_patch(tick_addr, _TRAMPOLINE_ADDR)
         site_bytes = await _ble_read(client, tick_addr, max(len(patch) + 12, 16))
         already_patched = site_bytes[: len(patch)] == patch
@@ -496,6 +577,20 @@ async def load_elf_to_device(
                 )
 
         return_addr = tick_addr + len(stolen)
+
+        rtc_set_addr = blob.symbols.get("fw_rtc_set")
+        if rtc_set_addr:
+            await _set_device_rtc(client, rtc_set_addr, stolen, return_addr,
+                                  tick_addr, patch, already_patched, log)
+            already_patched = False
+
+        bss_ranges: list[tuple[int, int]] = []
+        for s in sorted(blob.sections, key=lambda x: x.addr):
+            if s.data is None:
+                bss_ranges.append((s.addr, s.size))
+            else:
+                log(f"  Uploading {s.name:<10}  {s.size} B @ 0x{s.addr:08x}")
+                await _upload_bytes(client, s.data, s.addr, log)
 
         if bss_ranges:
             total_bss = sum(s for _, s in bss_ranges)

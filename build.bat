@@ -4,13 +4,13 @@ cd /d %~dp0
 
 set BOARD_DIR=sdk\boards\zoomtkldyna
 
-set CFLAGS=-mcpu=cortex-m3 -mthumb -O2 -g ^
+set CFLAGS=-mcpu=cortex-m3 -mthumb -O2 -g3 ^
  -ffreestanding -fomit-frame-pointer ^
  -fno-exceptions -fno-unwind-tables ^
  -ffunction-sections -fdata-sections ^
  -Wall -Isdk\include -Iinclude -I%BOARD_DIR% -Iapp -Iapp\widgets
 
-set LDFLAGS=-L sdk -T %BOARD_DIR%\zoomtkldyna.ld --gc-sections --emit-relocs
+set LDFLAGS=-L sdk -T %BOARD_DIR%\zoomtkldyna.ld --gc-sections --emit-relocs --undefined=fw_rtc_set
 
 if not exist build mkdir build
 del /q build\*.o 2>nul
