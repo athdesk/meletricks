@@ -21,9 +21,7 @@ extern "C" {
 
 /* -- rwip (BLE scheduler clock) ------------------------------------- */
 
-/* us since boot = time.hs * 312 + time.hus / 2 */
 FR_SYSCALL void rwip_time_get(fr_time_t *time);
-
 FR_SYSCALL void rwip_sleep_mul_64(u32 *out_lo, u32 *out_hi, u32 a, u32 b);
 
 /* Prevent-sleep bitmap at SRAM 0x11000B9E. set ORs the mask, clear

@@ -55,6 +55,13 @@ static volatile kbd_badge_temps_cb_t s_badge_cb;
 static volatile kbd_rtc_t          s_rtc     = { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u };
 static volatile kbd_rtc_cb_t       s_rtc_cb;
 
+/*
+ * Note: we don't disable IRQs when copying snapshots, so they can be torn.
+ * It's not a real issue since _get functions accept that they might get stale
+ * data (meant for polling). Callbacks should be safe since they only fire
+ * once the IRQ has updated the snapshot.
+ */
+
 void kbd_battery_get(kbd_battery_t *out)
 {
     out->battery_pct    = s_battery.battery_pct;
@@ -402,7 +409,7 @@ static void uart_isr(void)
     }
 }
 
-
+// TODO: Consider adding a refcount here to avoid deleting the saved ISR.
 static irq_handler_t saved_uart_isr;
 void kbd_event_init(void)
 {
