@@ -24,11 +24,11 @@ for %%f in (sdk\src\*.c sdk\src\*.s) do (
     arm-none-eabi-gcc %CFLAGS% -c %%f -o build\%%~nf.o || goto fail
 )
 
-arm-none-eabi-ld %LDFLAGS% build\*.o -o meletricks.elf || goto fail
-arm-none-eabi-objcopy -O binary meletricks.elf meletricks.bin || goto fail
+arm-none-eabi-ld %LDFLAGS% build\*.o -o build\meletricks.elf || goto fail
+arm-none-eabi-objcopy -O binary build\meletricks.elf build\meletricks.bin || goto fail
 echo Build OK
 
-arm-none-eabi-nm --numeric-sort meletricks.elf | findstr /V " A "
+arm-none-eabi-nm --numeric-sort build\meletricks.elf | findstr /V " A "
 goto end
 
 :fail

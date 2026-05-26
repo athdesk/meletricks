@@ -89,8 +89,6 @@ _TRAMPOLINE_MAX = 0x11009000 - _TRAMPOLINE_ADDR
 _SENTINEL_ADDR = 0x11009000 - 4
 _SENTINEL_VALUE = 0xB5B5B5B5
 
-_TICK_PATCH_ADDR = 0x110014EC
-
 _FIXED_LOAD_BASE = 0x220E0000
 
 _CODE_REGIONS = (
@@ -524,9 +522,13 @@ async def load_elf_to_device(
     device_address: str,
     elf_path: str,
     log: Callable[[str], None],
-    tick_addr: int = _TICK_PATCH_ADDR,
+    tick_addr: int | None = None,
 ) -> bool:
-    """Full sequence: connect → upload ELF → zero BSS → install tick hook."""
+    """Full sequence: connect → upload ELF → zero BSS → install tick hook.
+
+    If `tick_addr` is None, the patch site is discovered from the ELF's
+    `fw_tick_hook` symbol (defined per-board via FW_TICK_HOOK in board.h).
+    """
     log(f"Connecting to {device_address}...")
     client = BleakClient(device_address)
     try:
@@ -547,6 +549,17 @@ async def load_elf_to_device(
             blob = _ElfSections(elf_path, load_base=_FIXED_LOAD_BASE)
         else:
             blob = _ElfSections(elf_path)
+
+        if tick_addr is None:
+            tick_addr = blob.symbols.get("fw_tick_hook")
+            if tick_addr is None:
+                raise RuntimeError(
+                    "ELF has no 'fw_tick_hook' symbol — define FW_TICK_HOOK "
+                    "in the board header, or pass --hook to override."
+                )
+            log(f"  Tick hook @ 0x{tick_addr:08x} (auto-detected from ELF)")
+        else:
+            log(f"  Tick hook @ 0x{tick_addr:08x} (override)")
 
         entry = blob.entry & ~1
         if not _valid_code_addr(entry):
@@ -709,18 +722,20 @@ async def _cmd_upload(args: argparse.Namespace) -> int:
         _log(f"error: {args.elf}: no such file")
         return 2
 
-    try:
-        tick_addr = int(args.hook, 16) if isinstance(args.hook, str) else args.hook
-    except ValueError:
-        _log(f"error: invalid --hook value: {args.hook!r}")
-        return 2
+    tick_addr: int | None = None
+    if args.hook is not None:
+        try:
+            tick_addr = int(args.hook, 16)
+        except ValueError:
+            _log(f"error: invalid --hook value: {args.hook!r}")
+            return 2
 
     if args.device:
         addr = args.device
     else:
         addr = await _pick_device(args.name)
 
-    _log(f"--- Loading {os.path.basename(args.elf)} | hook @ 0x{tick_addr:08X} ---")
+    _log(f"--- Loading {os.path.basename(args.elf)} ---")
     ok = await load_elf_to_device(addr, args.elf, _log, tick_addr=tick_addr)
     return 0 if ok else 1
 
@@ -749,8 +764,10 @@ def _cli_main(argv: list[str]) -> int:
     )
     up_p.add_argument(
         "--hook",
-        default=hex(_TICK_PATCH_ADDR),
-        help=f"firmware tick function address (default 0x{_TICK_PATCH_ADDR:08X})",
+        default=None,
+        help="firmware tick function address (hex).  By default this is "
+             "read from the ELF's `fw_tick_hook` symbol, which is set per "
+             "board via FW_TICK_HOOK in sdk/boards/<board>/board.h.",
     )
     up_p.set_defaults(func=_cmd_upload)
 
@@ -774,7 +791,7 @@ class _App:
         self.root.resizable(True, True)
 
         self._elf_var = tk.StringVar()
-        self._hook_addr_var = tk.StringVar(value=f"0x{_TICK_PATCH_ADDR:08X}")
+        self._hook_addr_var = tk.StringVar(value="")
         self._devices: list[tuple[str, str, int]] = []
         self._log_queue: queue.Queue[str] = queue.Queue()
         self._busy = False
@@ -832,7 +849,7 @@ class _App:
         ).pack(side="left")
         tk.Label(
             hook_frame,
-            text="  hex address of the firmware tick function to patch",
+            text="  leave empty to auto-detect from ELF (fw_tick_hook symbol)",
             font=("Segoe UI", 8),
             fg="#666666",
         ).pack(side="left")
@@ -928,16 +945,19 @@ class _App:
         elf = self._elf_var.get()
         if not sel or not elf or not os.path.isfile(elf):
             return
-        try:
-            tick_addr = int(self._hook_addr_var.get(), 16)
-        except ValueError:
-            self._enqueue(f"Invalid hook address: {self._hook_addr_var.get()!r}")
-            return
+        raw_hook = self._hook_addr_var.get().strip()
+        tick_addr: int | None
+        if raw_hook:
+            try:
+                tick_addr = int(raw_hook, 16)
+            except ValueError:
+                self._enqueue(f"Invalid hook address: {raw_hook!r}")
+                return
+        else:
+            tick_addr = None  # auto-detect from ELF
         _, addr, _ = self._devices[sel[0]]
         self._set_busy(True)
-        self._enqueue(
-            f"\n--- Loading {os.path.basename(elf)} | hook @ 0x{tick_addr:08X} ---"
-        )
+        self._enqueue(f"\n--- Loading {os.path.basename(elf)} ---")
 
         def _run() -> None:
             try:

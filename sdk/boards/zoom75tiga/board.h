@@ -1,5 +1,5 @@
-#ifndef ZOOM75TIGA_H
-#define ZOOM75TIGA_H
+#ifndef BOARD_H
+#define BOARD_H
 
 #include "fr_types.h"
 
@@ -25,4 +25,6 @@
 #define FW_LCD_FULL_REINIT_ARMED ((volatile u8  *)0x11003940u)
 #define FW_LCD_PREVENT_SLEEP_BIT 0x4000u
 
-#endif /* ZOOM75TIGA_H */
+#define FW_TICK_HOOK             0x110014F4
+
+#endif /* BOARD_H */

@@ -171,19 +171,6 @@ typedef void (*kbd_badge_temps_cb_t)(const kbd_badge_temps_t *state);
 void kbd_badge_temps_get(kbd_badge_temps_t *out);
 void kbd_badge_temps_set_callback(kbd_badge_temps_cb_t cb);
 
-/* ---- RTC sync (opcodes 0x38 and 0xFB) ------------------------------------
- *
- * The keyboard MCU pushes a packed broken-down datetime; the firmware uses
- * a 2000-01-01 epoch internally (NOT Unix 1970).  We decode the same packet
- * the firmware does and expose the broken-down form, since clock-face
- * tweaks render hh:mm:ss directly.
- *
- * Note: this snapshot only updates when an 0x38 / 0xFB frame arrives.  For
- * a live-ticking time (firmware maintains its own free-running RTC via the
- * FRSPIM RTC IRQ and a soft 1Hz tick), use the board-specific
- * lcd_rtc_get_live() in zoomtkldyna.h.
- */
-
 typedef struct {
     u16 year;                /* full year e.g. 2026; 0 if never synced */
     u8  month;               /* 1..12 */

@@ -2,8 +2,51 @@
 # Toolchain: brew install --cask gcc-arm-embedded
 #        or: brew install arm-none-eabi-gcc
 
-BOARD_DIR := sdk/boards/zoomtkldyna
-BUILD     := build
+# Each board lives under sdk/boards/<name>/ and supplies a board.h with FW_*
+# addresses.  Build products are namespaced per board so switching never
+# reuses stale objects.
+#
+#   make                  # build every board found under sdk/boards/
+#   make BOARD=zoom75tiga # build just that one
+#   make BOARD=X upload   # flash that one
+#   make clean            # wipe build/ for all boards
+#
+BOARDS := $(notdir $(wildcard sdk/boards/*))
+
+ifndef BOARD
+# ─── Top-level: no BOARD specified, iterate over every board ───
+.DEFAULT_GOAL := all
+.PHONY: all release clean $(BOARDS) upload emu emu-build emu-clean scan
+
+all: $(BOARDS)
+
+$(BOARDS):
+	@$(MAKE) --no-print-directory BOARD=$@
+
+# `make release` builds every board and copies the .bin/.elf into release/
+# with the board name in the filename, ready for distribution.
+release:
+	@for b in $(BOARDS); do $(MAKE) --no-print-directory BOARD=$$b release || exit $$?; done
+
+clean:
+	rm -rf build release
+
+# Remove the legacy build products that used to land in the project root.
+.PHONY: clean-legacy
+clean-legacy:
+	rm -rf meletricks.elf meletricks.bin meletricks_emu.elf build_emu emu_frames
+
+upload emu emu-build emu-clean scan:
+	@echo "$@: specify BOARD=<name>. Available: $(BOARDS)" >&2; exit 2
+
+else
+# ─── Per-board build (BOARD is set) ───
+BOARD_DIR := sdk/boards/$(BOARD)
+BUILD     := build/$(BOARD)
+
+ifeq ($(wildcard $(BOARD_DIR)/board.h),)
+$(error Unknown BOARD '$(BOARD)': $(BOARD_DIR)/board.h not found. Available: $(BOARDS))
+endif
 
 CC  := arm-none-eabi-gcc
 LD  := arm-none-eabi-ld
@@ -49,19 +92,28 @@ OBJS := \
 
 DEPS := $(OBJS:.o=.d)
 
-TARGET_ELF := meletricks.elf
-TARGET_BIN := meletricks.bin
+TARGET_ELF := $(BUILD)/meletricks.elf
+TARGET_BIN := $(BUILD)/meletricks.bin
 
-.PHONY: all clean
+RELEASE_DIR := release
+
+.PHONY: all release clean
 
 all: $(TARGET_BIN)
-	@echo "Build OK"
+	@echo "[$(BOARD)] Build OK"
 	@$(NM) -n $(TARGET_ELF) | grep -v " A "
+
+release: $(TARGET_BIN)
+	@mkdir -p $(RELEASE_DIR)
+	cp $(TARGET_BIN) $(RELEASE_DIR)/meletricks-$(BOARD).bin
+	cp $(TARGET_ELF) $(RELEASE_DIR)/meletricks-$(BOARD).elf
+	@echo "[$(BOARD)] release -> $(RELEASE_DIR)/meletricks-$(BOARD).{bin,elf}"
 
 $(TARGET_BIN): $(TARGET_ELF)
 	$(OCP) -O binary $< $@
 
 $(TARGET_ELF): $(OBJS)
+	@mkdir -p $(dir $@)
 	$(LD) $(LDFLAGS) $^ -o $@
 
 $(BUILD)/%.o: %.c
@@ -73,7 +125,7 @@ $(BUILD)/%.o: %.s
 	$(CC) $(ASFLAGS) -c $< -o $@
 
 clean:
-	rm -rf $(BUILD) $(TARGET_ELF) $(TARGET_BIN) $(EMU_BUILD) $(EMU_ELF)
+	rm -rf $(BUILD)
 
 # ── Flash over BLE ────────────────────────────────────────────────────
 #
@@ -111,8 +163,8 @@ scan:
 # each trap to a Python handler.
 
 EMU_DIR   := tools/emu
-EMU_BUILD := build_emu
-EMU_ELF   := meletricks_emu.elf
+EMU_BUILD := $(BUILD)/emu
+EMU_ELF   := $(BUILD)/meletricks_emu.elf
 
 EMU_CFLAGS := \
     -mcpu=cortex-m3 -mthumb -O2 -g           \
@@ -155,6 +207,7 @@ emu: emu-build
 emu-build: $(EMU_ELF)
 
 $(EMU_ELF): $(EMU_OBJS) $(EMU_DIR)/emu.ld
+	@mkdir -p $(dir $@)
 	$(LD) $(EMU_LDFLAGS) $(EMU_OBJS) -o $@
 
 $(EMU_BUILD)/%.o: %.c
@@ -166,3 +219,5 @@ emu-clean:
 
 -include $(DEPS)
 -include $(EMU_DEPS)
+
+endif  # ifndef BOARD

@@ -164,11 +164,12 @@ def run_window(emu: Emu, args) -> int:
 
 
 def run_headless(emu: Emu, args) -> int:
-    """Run forever (or Ctrl-C); dump every Nth presented frame to PPM."""
+    """Run forever (or Ctrl-C); optionally dump every Nth presented frame to PPM."""
     import pathlib
     import time as _time
-    out = pathlib.Path("emu_frames")
-    out.mkdir(exist_ok=True)
+    out = pathlib.Path(args.dump_frames) if args.dump_frames else None
+    if out is not None:
+        out.mkdir(parents=True, exist_ok=True)
     n = 0
     saved = 0
     ticks = 0
@@ -180,7 +181,7 @@ def run_headless(emu: Emu, args) -> int:
             frame = emu.take_frame()
             if frame is not None:
                 n += 1
-                if n == 1 or n % 30 == 0:
+                if out is not None and (n == 1 or n % 30 == 0):
                     arr = _rgb565_to_rgb888(frame)
                     path = out / f"frame_{saved:05d}.ppm"
                     with path.open("wb") as fh:

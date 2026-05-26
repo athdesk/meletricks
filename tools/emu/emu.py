@@ -580,7 +580,9 @@ def main() -> int:
     parser.add_argument("--scale", type=int, default=3, help="window scale (default 3)")
     parser.add_argument("--max-fps", type=int, default=60, help="frontend frame cap")
     parser.add_argument("--no-window", action="store_true",
-                        help="headless: run ticks and dump every 30th frame to PPM")
+                        help="headless: run ticks without opening a window")
+    parser.add_argument("--dump-frames", type=Path, default=None, metavar="DIR",
+                        help="headless: dump every 30th presented frame as PPM into DIR")
     parser.add_argument("-v", "--verbose", action="store_true")
 
     # ── Status defaults (also tweakable live via F1..F8 in the window) ─

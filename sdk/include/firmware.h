@@ -1,8 +1,5 @@
 /*
  * firmware.h — board-generic API for the LCD firmware hooks.
- *
- * Implementations live in sdk/src/firmware.c; board-specific addresses
- * are supplied by the active board header (e.g. boards/zoomtkldyna/zoomtkldyna.h).
  */
 
 #ifndef FIRMWARE_H
@@ -20,9 +17,7 @@ void m_draw_frame(const u8 *fb);
 /* Kick the firmware watchdog timer. */
 void wd_refresh(void);
 
-/* Decode a packed datetime word and store it in the firmware's RTC.
- * Called by tweakloader over BLE to sync the device clock; the symbol
- * must remain present in the ELF (see --undefined=fw_rtc_set in LDFLAGS). */
+/* Decode a packed datetime word and store it in the firmware's RTC. */
 u32  fw_rtc_set(u32 packed);
 
 /* Silence / restore the firmware's GUI task so its periodic redraws don't
@@ -45,13 +40,7 @@ void lcd_te_sync_enable(void);
 int  lcd_is_idle(void);
 void lcd_wait_idle(void);
 
-/* Live broken-down RTC read from the firmware's free-running clock.
- *
- * Unlike kbd_rtc_get() (which only updates when a 0x38/0xFB UART frame
- * arrives), this reads the firmware's globals at 0x11003A24/A28, which
- * the firmware advances every second
- *
- */
+/* Live broken-down RTC read from the firmware's free-running clock. */
 typedef struct {
     u16 year;       /* full year, e.g. 2026 */
     u8  month;      /* 1..12 */

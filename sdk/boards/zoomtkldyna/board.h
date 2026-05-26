@@ -1,9 +1,5 @@
-/*
- * zoomtkldyna.h — firmware addresses for the ZOOM TKL DYNA LCD module.
- */
-
-#ifndef ZOOMTKLDYNA_H
-#define ZOOMTKLDYNA_H
+#ifndef BOARD_H
+#define BOARD_H
 
 #include "fr_types.h"
 
@@ -29,4 +25,6 @@
 #define FW_LCD_FULL_REINIT_ARMED ((volatile u8  *)0x11003974u)
 #define FW_LCD_PREVENT_SLEEP_BIT 0x4000u
 
-#endif /* ZOOMTKLDYNA_H */
+#define FW_TICK_HOOK             0x110014EC
+
+#endif /* BOARD_H */

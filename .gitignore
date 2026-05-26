@@ -138,5 +138,6 @@ htmlcov/
 emu_frames
 build
 build_emu
+release
 meletricks*.bin
 meletricks*.elf

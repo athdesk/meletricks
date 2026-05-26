@@ -1,7 +1,16 @@
 #include "firmware.h"
-#include "zoomtkldyna.h"
+#include "board.h"
 
 #define THUMB_BX_LR 0x4770u
+
+/* If the board located its firmware tick-handler address, expose it as an
+ * absolute linker symbol so tweakloader can auto-discover the patch site
+ * from the ELF's symbol table (no per-board CLI flag needed). */
+#ifdef FW_TICK_HOOK
+#define _FW_STR(x)  #x
+#define _FW_XSTR(x) _FW_STR(x)
+__asm__(".global fw_tick_hook\n.equ fw_tick_hook, " _FW_XSTR(FW_TICK_HOOK));
+#endif
 
 /* Thin wrappers around board-supplied firmware function pointers.
  * Keeping these as real C functions (rather than inlining at every call

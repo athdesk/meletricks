@@ -1,7 +1,6 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-#include "zoomtkldyna.h"
 #include "entry.h"
 #include "firmware.h"
 #include "kbd_event.h"
