@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import random
 import sys
 import time
 from pathlib import Path
@@ -96,6 +97,22 @@ class Tour:
             self.emu.push_kbd_key(sc)
             self.wait_real_ms(between_ms)
 
+    def human_type_for(self, seconds: float,
+                       wpm_min: int = 70, wpm_max: int = 100,
+                       seed: int = 0xDEADBEEF) -> None:
+        """Inject letter keypresses at a randomly varying human pace for
+        roughly `seconds` wall-clock seconds.  Each gap is drawn uniformly
+        from [wpm_min, wpm_max] (5 chars/word canonical), keeping the WPM
+        graph wiggling instead of pinned."""
+        rng = random.Random(seed)
+        deadline = time.monotonic() + seconds
+        i = 0
+        while time.monotonic() < deadline:
+            self.emu.push_kbd_key(0x04 + (i % 26))
+            wpm = rng.uniform(wpm_min, wpm_max)
+            self.wait_real_ms(int(60_000 / (wpm * 5)))
+            i += 1
+
     def capture(self, name: str) -> None:
         self.step_no += 1
         self.tick(SETTLE_TICKS)
@@ -124,25 +141,23 @@ def run_tour(t: Tour) -> None:
     t.push(ENTER);                   t.capture("scr_wireframe_settings")
     t.push(BACK, BACK)
 
-    # Item 2: Life — seed the grid with keystrokes then let it evolve a
-    # few generations so the screenshot isn't blank.  Cycle through 26
-    # letter scancodes so HID_REPRESS_MS debounce never trips.
+    # Item 2: Life — only the carousel preview here.  Entering Life
+    # requires seeding the grid with a burst of keypresses, which would
+    # pump a tall spike into the WPM history and ruin the graph capture
+    # two steps below.  We come back to Life at the very end of the tour.
     t.push(NEXT);                    t.capture("main_life")
-    t.push(ENTER)
-    t.push_hid(*[0x04 + (i % 26) for i in range(30)])
-    t.wait_real_ms(2000)             # ~20 life generations at step_interval_ms=100
-    t.capture("scr_life")
-    t.push(ENTER);                   t.capture("scr_life_settings")
-    t.push(BACK, BACK)
 
     # Item 3: Clock (no per-screen settings)
     t.push(NEXT);                    t.capture("main_clock")
     t.push(ENTER);                   t.capture("scr_clock")
     t.push(BACK)
 
-    # Item 4: WPM Graph
+    # Item 4: WPM Graph — type at a human pace before capturing so the
+    # 1-Hz history has several non-zero samples and the curve is visible.
     t.push(NEXT);                    t.capture("main_graph")
-    t.push(ENTER);                   t.capture("scr_graph")
+    t.push(ENTER)
+    t.human_type_for(seconds=8)
+    t.capture("scr_graph")
     t.push(ENTER);                   t.capture("scr_graph_settings")
     t.push(BACK, BACK)
 
@@ -162,6 +177,17 @@ def run_tour(t: Tour) -> None:
     t.push(BACK)                                                          # back to debug, cursor=row 5
     t.push(BACK)                                                          # back to settings, cursor=row 1 (Debug)
     t.push(NEXT, ENTER);             t.capture("scr_settings_fonts")      # row 2
+
+    # Deferred Life — back out to the main carousel and walk PREV from
+    # position 5 (Settings) to position 2 (Life), then seed + evolve.
+    log.info("Game of Life (deferred to avoid polluting WPM history):")
+    t.push(BACK, BACK)                                                    # fonts → settings menu → main
+    t.push(PREV, PREV, PREV)                                              # 5→4→3→2
+    t.push(ENTER)
+    t.push_hid(*[0x04 + (i % 26) for i in range(30)])
+    t.wait_real_ms(2000)             # ~20 life generations at step_interval_ms=100
+    t.capture("scr_life")
+    t.push(ENTER);                   t.capture("scr_life_settings")
 
 
 def main() -> int:
