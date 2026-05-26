@@ -16,6 +16,9 @@ typedef unsigned int        uint;
 #ifndef __bool_true_false_are_defined  /* <stdbool.h> not included */
 #if !defined(__STDC_VERSION__) || __STDC_VERSION__ < 202311L  /* not C23+ */
 typedef u8                  bool;
+#define true                1
+#define false               0
+
 #endif
 #endif
 #endif

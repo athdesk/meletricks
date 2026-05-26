@@ -9,7 +9,8 @@
 #include "gfx_screen.h"
 #include "firmware.h"        /* m_draw_frame, lcd_is_idle */
 #include "timer.h"           /* fr_millis */
-#include <string.h>
+#include "mem.h"
+#include "fr_types.h"
 
 static GfxFb     *s_fb;
 static GfxScreen *s_current;
