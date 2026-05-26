@@ -11,12 +11,20 @@
 #   make BOARD=X upload   # flash that one
 #   make clean            # wipe build/ for all boards
 #
+# Shared toolchain — used by both per-board firmware builds and the
+# board-independent emu/ui-test build below.
+CC  := arm-none-eabi-gcc
+LD  := arm-none-eabi-ld
+OCP := arm-none-eabi-objcopy
+NM  := arm-none-eabi-nm
+PYTHON ?= python3
+
 BOARDS := $(notdir $(wildcard sdk/boards/*))
 
 ifndef BOARD
 # ─── Top-level: no BOARD specified, iterate over every board ───
 .DEFAULT_GOAL := all
-.PHONY: all release clean $(BOARDS) upload emu emu-build emu-clean scan
+.PHONY: all release clean $(BOARDS) upload scan
 
 all: $(BOARDS)
 
@@ -36,7 +44,7 @@ clean:
 clean-legacy:
 	rm -rf meletricks.elf meletricks.bin meletricks_emu.elf build_emu emu_frames
 
-upload emu emu-build emu-clean scan:
+upload scan:
 	@echo "$@: specify BOARD=<name>. Available: $(BOARDS)" >&2; exit 2
 
 else
@@ -47,13 +55,6 @@ BUILD     := build/$(BOARD)
 ifeq ($(wildcard $(BOARD_DIR)/board.h),)
 $(error Unknown BOARD '$(BOARD)': $(BOARD_DIR)/board.h not found. Available: $(BOARDS))
 endif
-
-CC  := arm-none-eabi-gcc
-LD  := arm-none-eabi-ld
-OCP := arm-none-eabi-objcopy
-NM  := arm-none-eabi-nm
-
-PYTHON ?= python3
 
 CFLAGS := \
     -mcpu=cortex-m3 -mthumb -O2 -g3         \
@@ -155,16 +156,24 @@ upload: $(TARGET_ELF)
 scan:
 	$(PYTHON) $(TWEAKLOADER) scan $(if $(DEVICE_FILTER),--name "$(DEVICE_FILTER)",)
 
-# ── Host emulator guest build ─────────────────────────────────────────
+-include $(DEPS)
+
+endif  # ifndef BOARD
+
+# ─── Host emulator guest build (board-independent) ───────────────────
 #
 # `make emu` builds an ELF (meletricks_emu.elf) without sdk/src/ — every
 # SDK API symbol is resolved by tools/emu/emu.ld to a fixed trap address.
 # tools/emu/emu.py loads that ELF in Unicorn and runs the app, dispatching
 # each trap to a Python handler.
+#
+# The emu doesn't depend on any specific keyboard board (the SDK is
+# entirely trapped), so it uses the stub board.h from tools/emu/ and
+# builds into build/emu/ regardless of BOARD.
 
 EMU_DIR   := tools/emu
-EMU_BUILD := $(BUILD)/emu
-EMU_ELF   := $(BUILD)/meletricks_emu.elf
+EMU_BUILD := build/emu
+EMU_ELF   := $(EMU_BUILD)/meletricks_emu.elf
 
 EMU_CFLAGS := \
     -mcpu=cortex-m3 -mthumb -O2 -g           \
@@ -174,7 +183,7 @@ EMU_CFLAGS := \
     -fno-pic -fno-pie                         \
     -Wall                                     \
     -DSDK_EMU_BUILD                           \
-    -Isdk/include -Iinclude -I$(BOARD_DIR)    \
+    -Isdk/include -Iinclude -I$(EMU_DIR)      \
     -Iapp -Iapp/widgets                       \
     -MMD -MP
 
@@ -193,7 +202,7 @@ EMU_SRCS_C := \
 EMU_OBJS := $(patsubst %.c,$(EMU_BUILD)/%.o,$(EMU_SRCS_C))
 EMU_DEPS := $(EMU_OBJS:.o=.d)
 
-.PHONY: emu emu-build emu-clean
+.PHONY: emu emu-build emu-clean ui-test
 
 # `make emu` builds + immediately launches the emulator.  Pass extra
 # python args via EMU_ARGS, e.g. `make emu EMU_ARGS="--battery 30 --caps"`.
@@ -206,6 +215,13 @@ emu: emu-build
 
 emu-build: $(EMU_ELF)
 
+# Headless UI tour: build the emu, then drive every screen and dump PNGs
+# into ./screenshots/.  Override the output dir with UITEST_ARGS="--out X".
+UITEST_ARGS ?=
+
+ui-test: emu-build
+	$(PYTHON) $(EMU_DIR)/uitest.py $(EMU_ELF) $(UITEST_ARGS)
+
 $(EMU_ELF): $(EMU_OBJS) $(EMU_DIR)/emu.ld
 	@mkdir -p $(dir $@)
 	$(LD) $(EMU_LDFLAGS) $(EMU_OBJS) -o $@
@@ -215,9 +231,6 @@ $(EMU_BUILD)/%.o: %.c
 	$(CC) $(EMU_CFLAGS) -c $< -o $@
 
 emu-clean:
-	rm -rf $(EMU_BUILD) $(EMU_ELF)
+	rm -rf $(EMU_BUILD)
 
--include $(DEPS)
 -include $(EMU_DEPS)
-
-endif  # ifndef BOARD
