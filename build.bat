@@ -10,7 +10,7 @@ set CFLAGS=-mcpu=cortex-m3 -mthumb -O2 -g3 ^
  -ffunction-sections -fdata-sections ^
  -Wall -Isdk\include -Iinclude -I%BOARD_DIR% -Iapp -Iapp\widgets
 
-set LDFLAGS=-L sdk -T %BOARD_DIR%\zoomtkldyna.ld --gc-sections --emit-relocs --undefined=fw_rtc_set
+set LDFLAGS=-L sdk -T sdk\fr8000.ld --gc-sections --emit-relocs --undefined=fw_rtc_set
 
 if not exist build mkdir build
 del /q build\*.o 2>nul

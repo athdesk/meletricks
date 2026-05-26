@@ -27,7 +27,7 @@ ASFLAGS := -mcpu=cortex-m3 -mthumb -g
 
 LDFLAGS := \
     -L sdk \
-    -T $(BOARD_DIR)/zoomtkldyna.ld \
+    -T sdk/fr8000.ld \
     --gc-sections \
     --emit-relocs \
     --undefined=fw_rtc_set

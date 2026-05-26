@@ -22,6 +22,10 @@
 #define FW_DISPLAY_SLEEP_FN      ((void (*)(void))(0x1001DF04u | 1u))
 #define FW_DISPLAY_WAKE_FN       ((void (*)(void))(0x1001DF20u | 1u))
 
+#define FW_DRAW_FRAME_FN         ((void (*)(const u8 *))(0x1001A114u | 1u))
+#define FW_WD_REFRESH_FN         ((void (*)(void))      (0x1001E784u | 1u))
+#define FW_RTC_SET_FN            ((u32  (*)(u32))       (0x1001DE18u | 1u))
+
 #define FW_LCD_FULL_REINIT_ARMED ((volatile u8  *)0x11003974u)
 #define FW_LCD_PREVENT_SLEEP_BIT 0x4000u
 

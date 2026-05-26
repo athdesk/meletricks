@@ -3,6 +3,15 @@
 
 #define THUMB_BX_LR 0x4770u
 
+/* Thin wrappers around board-supplied firmware function pointers.
+ * Keeping these as real C functions (rather than inlining at every call
+ * site) preserves the `m_draw_frame` / `wd_refresh` / `fw_rtc_set` symbol
+ * names in the linked ELF — tweakloader looks `fw_rtc_set` up by name
+ * over BLE, and `wd_refresh` is taken via weak ref in sdk_dispatch.c. */
+void m_draw_frame(const u8 *fb) { FW_DRAW_FRAME_FN(fb); }
+void wd_refresh(void)           { FW_WD_REFRESH_FN(); }
+u32  fw_rtc_set(u32 packed)     { return FW_RTC_SET_FN(packed); }
+
 static u16 saved_instr;
 
 /* Patch the first instruction of the firmware GUI task with BX LR so each

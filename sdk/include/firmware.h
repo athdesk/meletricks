@@ -15,10 +15,15 @@
 /* Triggers a full DMA refresh of the 320x172 RGB565 LCD framebuffer.  The
  * source buffer must be exactly that geometry
  * Partial blits would require using set_window. We don't support it yet. */
-FR_SYSCALL void m_draw_frame(const u8 *fb);
+void m_draw_frame(const u8 *fb);
 
 /* Kick the firmware watchdog timer. */
-FR_SYSCALL void wd_refresh(void);
+void wd_refresh(void);
+
+/* Decode a packed datetime word and store it in the firmware's RTC.
+ * Called by tweakloader over BLE to sync the device clock; the symbol
+ * must remain present in the ELF (see --undefined=fw_rtc_set in LDFLAGS). */
+u32  fw_rtc_set(u32 packed);
 
 /* Silence / restore the firmware's GUI task so its periodic redraws don't
  * fight us for the LCD framebuffer.  Implemented by patching the first
