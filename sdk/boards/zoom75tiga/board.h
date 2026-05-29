@@ -3,7 +3,14 @@
 
 #include "fr_types.h"
 
-#define FW_GUI_TASK_HANDLER      ((volatile u16 *)0x11001082u)
+/* Slot 7 (offset 0x1C) of the SRAM main-loop task table.
+ * Tiga adds an extra inline SRAM task at slot 4 vs DYNA, pushing every
+ * subsequent slot down by one — so where DYNA had Task6_GUI at 0x11001082,
+ * Tiga's 0x11001082 is now the BLE temperature-report dispatch task and
+ * GUI redraw moved to the next thunk at 0x1100108C.
+ * 0x1100108C -> flash 0x1001E7C0 -> DrawGuiNow @ 0x1001E3F0 (gated by
+ * byte_1100397A). Patch its first u16 with BX LR (0x4770) to skip. */
+#define FW_GUI_TASK_HANDLER      ((volatile u16 *)0x1100108Cu)
 
 #define FW_LCD_TE_GATE           ((volatile u8  *)0x11003A2Du)
 #define FW_LCD_IDLE_FLAG         ((volatile u8  *)0x11003A2Cu)

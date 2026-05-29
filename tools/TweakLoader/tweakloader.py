@@ -591,12 +591,6 @@ async def load_elf_to_device(
 
         return_addr = tick_addr + len(stolen)
 
-        rtc_set_addr = blob.symbols.get("fw_rtc_set")
-        if rtc_set_addr:
-            await _set_device_rtc(client, rtc_set_addr, stolen, return_addr,
-                                  tick_addr, patch, already_patched, log)
-            already_patched = False
-
         bss_ranges: list[tuple[int, int]] = []
         for s in sorted(blob.sections, key=lambda x: x.addr):
             if s.data is None:
@@ -604,6 +598,21 @@ async def load_elf_to_device(
             else:
                 log(f"  Uploading {s.name:<10}  {s.size} B @ 0x{s.addr:08x}")
                 await _upload_bytes(client, s.data, s.addr, log)
+
+        # RTC set must come AFTER section upload — the trampoline does a
+        # BLX into the user's `fw_rtc_set` wrapper in PSRAM, so the body
+        # has to be live by then. DYNA appeared to tolerate the old order
+        # only because its uninitialized PSRAM contained long runs of
+        # 0xAA bytes (Thumb-16 `ADD R2, SP, #imm8`, a harmless walk) so
+        # the call silently timed out without faulting — the RTC wasn't
+        # actually being set in the DYNA "fresh-upload" case either, the
+        # timeout was just hidden in the log. On Tiga, PSRAM defaults are
+        # random and one of those random halfwords faults → hard reset.
+        rtc_set_addr = blob.symbols.get("fw_rtc_set")
+        if rtc_set_addr:
+            await _set_device_rtc(client, rtc_set_addr, stolen, return_addr,
+                                  tick_addr, patch, already_patched, log)
+            already_patched = False
 
         if bss_ranges:
             total_bss = sum(s for _, s in bss_ranges)
